@@ -46,8 +46,9 @@ export default function WelcomePage() {
     const audio = audioRef.current;
     if (!audio) return;
 
+    // ensure loop and playsinline attribute (use setAttribute to avoid TS DOM typing mismatch)
     audio.loop = true;
-    audio.playsInline = true;
+    audio.setAttribute("playsinline", "");
 
     const start = async () => {
       try {
@@ -88,8 +89,10 @@ export default function WelcomePage() {
         audio.pause();
       } catch {}
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // toggle handler for mute/unmute button (was missing in your posted file)
   const handleToggle = async () => {
     const audio = audioRef.current;
     if (!audio) return;
