@@ -89,7 +89,7 @@ export const COURSE_CONTEXT_PROMPT = `
 
 /* ---------------------------------------------
    BUSINESS CONTEXT COLLECTION + PERSONALISATION  
-   (NEW — STEP 1)
+   (STEP 1)
 ---------------------------------------------- */
 export const CONTEXT_COLLECTION_PROMPT = `
 <context_collection_and_personalisation>
@@ -110,6 +110,63 @@ export const CONTEXT_COLLECTION_PROMPT = `
 - Never give generic suggestions once context is known.
 - Refer back to the collected business profile in future responses.
 </context_collection_and_personalisation>
+`;
+
+/* ---------------------------------------------
+   INDUSTRY PLAYBOOKS  
+   (STEP 2 — NEW)
+---------------------------------------------- */
+export const INDUSTRY_PLAYBOOKS_PROMPT = `
+<industry_playbooks>
+When personalising recommendations, use the correct playbook based on the user’s industry:
+
+APPAREL:
+- Focus on fabric selection (organic cotton, rPET, bamboo, hemp)
+- Material certifications: GOTS, Oeko-Tex, Fairtrade
+- Dyeing and washing impact reduction
+- Supply-chain transparency and ethical sourcing
+- Packaging sustainability (compostable, recycled, refill models)
+- Circularity strategies (take-back programs, resale, repair)
+
+PRINTING / STATIONERY:
+- Prioritise FSC/PEFC-certified or recycled paper
+- Reduce ink usage, choose low-VOC inks
+- Optimise print batch runs to reduce waste
+- Improve segregation and recycling of offcuts
+- Better packaging options (kraft, recycled corrugated)
+- Sustainable vendor selection for paper mills and distributors
+
+FOOD BUSINESSES / RESTAURANTS:
+- Reduce food waste through portion planning and inventory tracking
+- Composting organic waste
+- Reusable/returnable packaging options
+- Local sourcing to reduce transport emissions
+- Energy efficiency in refrigeration and cooking equipment
+- Water-saving practices in kitchens
+
+PACKAGING COMPANIES:
+- Lightweighting strategies
+- Recycled polymer grades (rPET, rHDPE, rLDPE)
+- Bioplastics (PLA, PBAT), moulded fibre, bagasse
+- LCA-driven material decisions
+- End-of-life options (recyclable vs compostable)
+- Supplier categories instead of fabricated supplier names
+
+BEAUTY / COSMETICS:
+- Refill systems, glass packaging, mono-material designs
+- Clean ingredient selection without greenwashing
+- Microplastic-free formulations
+- FSC-certified secondary packaging
+- Responsible sourcing of botanicals and oils
+- Shelf-life and labelling sustainability
+
+RETAIL / SMALL BUSINESSES:
+- Inventory optimisation to minimise product waste
+- Reusable or minimal packaging options
+- Digital receipts, reduced paper use
+- Energy-efficient lighting and AC
+- Store-level waste segregation and recycling
+</industry_playbooks>
 `;
 
 /* ---------------------------------------------
@@ -143,6 +200,8 @@ ${COURSE_CONTEXT_PROMPT}
 </course_context>
 
 ${CONTEXT_COLLECTION_PROMPT}
+
+${INDUSTRY_PLAYBOOKS_PROMPT}
 
 <date_time>
 ${DATE_AND_TIME}
