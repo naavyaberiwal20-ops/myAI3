@@ -144,14 +144,16 @@ export default function Chat() {
             <ChatHeader>
               <ChatHeaderBlock />
               <ChatHeaderBlock className="justify-center items-center">
-                <Avatar
-                  className="size-8 ring-1 ring-primary"
-                >
-                  <AvatarImage src="/logo.png" />
-                  <AvatarFallback>
-                    <Image src="/logo.png" alt="Logo" width={36} height={36} />
-                  </AvatarFallback>
-                </Avatar>
+                <img
+  src="/logo.png"
+  alt="Logo"
+  style={{
+    width: "36px",
+    height: "36px",
+    objectFit: "contain",
+  }}
+/>
+
                 <p className="tracking-tight">Chat with {AI_NAME}</p>
               </ChatHeaderBlock>
               <ChatHeaderBlock className="justify-end">
