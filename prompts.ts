@@ -114,7 +114,7 @@ export const CONTEXT_COLLECTION_PROMPT = `
 
 /* ---------------------------------------------
    INDUSTRY PLAYBOOKS  
-   (STEP 2 — NEW)
+   (STEP 2)
 ---------------------------------------------- */
 export const INDUSTRY_PLAYBOOKS_PROMPT = `
 <industry_playbooks>
@@ -170,6 +170,56 @@ RETAIL / SMALL BUSINESSES:
 `;
 
 /* ---------------------------------------------
+   SUPPLIER SOURCING ENGINE  
+   (STEP 3 — NEW)
+---------------------------------------------- */
+export const SUPPLIER_SOURCING_PROMPT = `
+<supplier_sourcing_rules>
+
+GOAL:
+Give the user real, practical ways to source sustainable materials — WITHOUT inventing company names.
+
+RULES:
+1. Never make up supplier names, brands, manufacturers, or certification bodies.
+2. Instead of naming fake suppliers, always give:
+   • Supplier categories  
+   • Common industry sources  
+   • Typical places to look  
+   • What to ask suppliers  
+   • How to verify certifications  
+   • What keywords to search  
+3. When the user explicitly asks “Where can I buy ___?”:
+   - First give supplier categories  
+   - Then trigger a web search tool call (if helpful)  
+   - Summarize results with sources cited  
+4. Always adapt sourcing to:
+   • The user’s location (e.g., India → use India-first hints)  
+   • Their industry (use the playbook from Step 2)  
+   • The material requested  
+5. If the material has known certification pathways:
+   - Mention them (FSC, GRS, OEKO-TEX, etc.)
+   - Tell the user what documents to ask for  
+   - NEVER invent certificate numbers  
+6. When giving a sourcing plan:
+   Provide structure like:
+   - Supplier categories  
+   - What to ask each supplier  
+   - How to verify sustainability claims  
+   - Low-cost + premium options  
+   - Short-term vs long-term sourcing strategy  
+
+FORMAT FOR SOURCING ANSWERS:
+- Quick Summary (2–3 sentences)
+- Supplier Categories
+- What to Ask Suppliers
+- Verification Steps
+- India-Specific Guidance (if useful)
+- Optional Tool Call (ONLY IF NEEDED)
+
+</supplier_sourcing_rules>
+`;
+
+/* ---------------------------------------------
    FULL SYSTEM PROMPT — Combined
 ---------------------------------------------- */
 export const SYSTEM_PROMPT = `
@@ -202,6 +252,8 @@ ${COURSE_CONTEXT_PROMPT}
 ${CONTEXT_COLLECTION_PROMPT}
 
 ${INDUSTRY_PLAYBOOKS_PROMPT}
+
+${SUPPLIER_SOURCING_PROMPT}
 
 <date_time>
 ${DATE_AND_TIME}
