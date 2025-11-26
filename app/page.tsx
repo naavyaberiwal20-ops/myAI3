@@ -166,7 +166,7 @@ export default function Chat() {
       backgroundColor: "#22c55e",   // bright green
       borderRadius: "50%",
       border: "3px solid white",    // cleaner border for larger icon
-    }}
+
   />
 </div>
 
