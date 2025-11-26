@@ -11,7 +11,6 @@ export const MODEL = openai('gpt-4.1');
 //     middleware: extractReasoningMiddleware({ tagName: 'think' }), // Use this only when using Deepseek
 // });
 
-
 function getDateAndTime(): string {
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-US', {
@@ -33,7 +32,20 @@ export const DATE_AND_TIME = getDateAndTime();
 export const AI_NAME = "Greanly";
 export const OWNER_NAME = "Naavya & Sidhant";
 
-export const WELCOME_MESSAGE = `Hello! I'm ${AI_NAME}, an AI assistant created by ${OWNER_NAME}.`
+export const WELCOME_MESSAGE = `
+Hi! I'm ${AI_NAME}. Before I help you, I need to understand your business a little better.
+
+Could you tell me:
+
+1) What industry your business is in?  
+2) What materials you currently use?  
+3) Where your business is located?  
+4) What sustainability goal you want to focus on first?
+
+Examples of goals include reducing waste, sourcing better materials, improving packaging, lowering your carbon footprint, or finding sustainable suppliers.
+
+Once I have this, I’ll create a personalised sustainability plan for you. 🌱
+`;
 
 export const CLEAR_CHAT_TEXT = "New";
 
@@ -54,6 +66,7 @@ export const MODERATION_DENIAL_MESSAGE_DEFAULT = "Your message violates our guid
 
 export const PINECONE_TOP_K = 40;
 export const PINECONE_INDEX_NAME = "my-ai";
+
 export const SYSTEM_PROMPT = `
 You are Greanly — a smart sustainability companion for businesses.
 Your job is to translate any business description into clear, practical, actionable sustainability guidance.
