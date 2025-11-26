@@ -1,33 +1,41 @@
-export async function supplierSearch(query: string) {
-  try {
-    const params = new URLSearchParams({
-      q: query,
-      num: "5",
-      key: process.env.GOOGLE_API_KEY || "",
-      cx: process.env.GOOGLE_CX || "",
-    });
+import { tool } from "ai";
+import { Exa } from "exa-js";
 
-    const res = await fetch(
-      `https://www.googleapis.com/customsearch/v1?${params.toString()}`
-    );
+export const supplierSearch = tool({
+  description: "Searches for sustainable suppliers for materials or products using Exa.",
+  parameters: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "What the user is trying to find. Example: 'recycled cotton suppliers India'"
+      }
+    },
+    required: ["query"]
+  },
 
-    if (!res.ok) {
-      throw new Error("Supplier search failed");
+  async execute({ query }) {
+    try {
+      const exa = new Exa(process.env.EXA_API_KEY as string);
+
+      const search = await exa.searchAndContents(query, {
+        useAutoprompt: true,
+        numResults: 10
+      });
+
+      return {
+        results: search.results.map(r => ({
+          title: r.title,
+          url: r.url,
+          snippet: r.text || r.highlight || ""
+        }))
+      };
+    } catch (error: any) {
+      console.error("Exa supplier search error:", error);
+      return {
+        results: [],
+        error: "Failed to fetch supplier data from Exa."
+      };
     }
-
-    const data = await res.json();
-
-    return {
-      results: (data.items || []).map((item: any) => ({
-        title: item.title,
-        link: item.link,
-        snippet: item.snippet,
-      })),
-    };
-  } catch (error) {
-    return {
-      results: [],
-      error: "Could not fetch supplier information.",
-    };
   }
-}
+});
