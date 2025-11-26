@@ -230,11 +230,19 @@ export default function Chat() {
     if (!suggs?.length) return null;
 
     return (
-      <div className="w-full flex justify-center pointer-events-auto">
+      <div
+        className="w-full flex justify-center pointer-events-auto"
+        style={{ zIndex: 60 }}
+      >
         <div className="max-w-3xl w-full px-4">
           <div
             className="overflow-x-auto scrollbar-hide"
-            style={{ paddingRight: "90px" }}  // ensures last chip is visible
+            style={{
+              // big right padding so last chip never hides under the input send button
+              paddingRight: "160px",
+              // ensure chips are not clipped
+              boxSizing: "content-box",
+            }}
           >
             <div className="flex flex-nowrap items-center gap-3 py-2 min-w-full">
               {suggs.map((s, i) => (
@@ -242,6 +250,7 @@ export default function Chat() {
                   key={i}
                   onClick={() => handleSuggestionClick(s)}
                   className="suggestion-chip whitespace-nowrap px-4 py-2 bg-gray-100 hover:bg-gray-200 text-sm text-gray-800 shadow-sm"
+                  type="button"
                 >
                   {s}
                 </button>
@@ -308,8 +317,8 @@ export default function Chat() {
           </div>
         </div>
 
-        {/* ==== FIXED SUGGESTIONS ROW ==== */}
-        <div className="fixed bottom-[110px] left-0 right-0 z-50 pointer-events-auto">
+        {/* ==== FIXED SUGGESTIONS ROW (moved up to avoid overlap) ==== */}
+        <div className="fixed bottom-[124px] left-0 right-0 z-50 pointer-events-auto">
           <SuggestionsBar />
         </div>
 
@@ -333,7 +342,7 @@ export default function Chat() {
                             {...field}
                             id="chat-form-message"
                             ref={inputRef}
-                            className="h-15 pr-15 pl-5 bg-card rounded-[20px]"
+                            className="h-15 pr-20 pl-5 bg-card rounded-[20px]"
                             placeholder="Type your message here..."
                             disabled={status === "streaming"}
                           />
