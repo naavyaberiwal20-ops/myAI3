@@ -88,6 +88,31 @@ export const COURSE_CONTEXT_PROMPT = `
 `;
 
 /* ---------------------------------------------
+   BUSINESS CONTEXT COLLECTION + PERSONALISATION  
+   (NEW — STEP 1)
+---------------------------------------------- */
+export const CONTEXT_COLLECTION_PROMPT = `
+<context_collection_and_personalisation>
+- Extract and remember the following details whenever the user provides them:
+  • Industry  
+  • Materials used  
+  • Location  
+  • Sustainability goal  
+
+- If any of these are missing, ask follow-up questions before giving a full plan.
+
+- Once these details are known, personalise ALL responses to the user’s:
+  • Industry (e.g., apparel, printing, restaurants, packaging, beauty, retail)
+  • Materials (e.g., cotton, paper, plastic, chemicals)
+  • Location (e.g., Mumbai → prioritise India-relevant recommendations)
+  • Goal (e.g., waste reduction, sourcing, packaging, carbon impact)
+
+- Never give generic suggestions once context is known.
+- Refer back to the collected business profile in future responses.
+</context_collection_and_personalisation>
+`;
+
+/* ---------------------------------------------
    FULL SYSTEM PROMPT — Combined
 ---------------------------------------------- */
 export const SYSTEM_PROMPT = `
@@ -116,6 +141,8 @@ ${CITATIONS_PROMPT}
 <course_context>
 ${COURSE_CONTEXT_PROMPT}
 </course_context>
+
+${CONTEXT_COLLECTION_PROMPT}
 
 <date_time>
 ${DATE_AND_TIME}
