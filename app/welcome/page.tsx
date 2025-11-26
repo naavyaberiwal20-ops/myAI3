@@ -30,7 +30,9 @@ export default function WelcomePage() {
     const stepAmount = TARGET_VOLUME / steps;
     fadeIntervalRef.current = window.setInterval(() => {
       try {
-        audio.volume = Math.min(TARGET_VOLUME, (audio.volume || 0) + stepAmount);
+        // Use numeric comparisons; audio.volume may be 0..1
+        const current = typeof audio.volume === "number" ? audio.volume : 0;
+        audio.volume = Math.min(TARGET_VOLUME, current + stepAmount);
         if (audio.volume >= TARGET_VOLUME - 0.001) {
           clearFade();
           audio.volume = TARGET_VOLUME;
@@ -41,58 +43,93 @@ export default function WelcomePage() {
     }, FADE_STEP_MS);
   };
 
-  // Best-effort start autoplay muted, then attempt to unmute.
+  // attempt autoplay muted then try to unmute after fade; also listen for user gesture fallback
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    // ensure loop and playsinline attribute (use setAttribute to avoid TS DOM typing mismatch)
+    // mobile safe inline playback — use setAttribute to avoid TS mismatch
     audio.loop = true;
     audio.setAttribute("playsinline", "");
 
+    let didAttemptAuto = false;
+
+    const tryUnmutePlay = async (): Promise<boolean> => {
+      try {
+        // try to play (user gesture may be required)
+        await audio.play();
+        audio.muted = false;
+        audio.volume = TARGET_VOLUME;
+        return !audio.muted;
+      } catch {
+        return false;
+      }
+    };
+
     const start = async () => {
       try {
+        // start muted autoplay (browsers allow muted autoplay)
         audio.muted = true;
         audio.volume = 0;
-        // allow autoplay (muted)
-        await audio.play();
+        await audio.play(); // may succeed muted
         fadeIn();
+        didAttemptAuto = true;
 
-        // after fade, try to unmute programmatically (may still be blocked)
-        setTimeout(() => {
-          try {
-            audio.muted = false;
-            if (!audio.muted) {
-              setMuted(false);
-              setUnmuteNeeded(false);
-            } else {
-              setMuted(true);
-              setUnmuteNeeded(true);
-            }
-          } catch {
+        // after fade, attempt to unmute programmatically (may still be blocked)
+        setTimeout(async () => {
+          const ok = await tryUnmutePlay();
+          if (ok) {
+            setMuted(false);
+            setUnmuteNeeded(false);
+          } else {
+            // still blocked — show control to user
             setMuted(true);
             setUnmuteNeeded(true);
           }
         }, FADE_DURATION_MS + 200);
       } catch {
-        // playback failed; show unmute control so user can start audio
+        // autoplay failed entirely — show unmute control
         setUnmuteNeeded(true);
         setMuted(true);
       }
     };
 
+    // call start
     start();
+
+    // fallback: if autoplay was blocked, a single user gesture should start audio
+    const onFirstGesture = async () => {
+      if (!audio) return;
+      // If autoplay already succeeded and unmuted, we can remove the handler
+      if (!unmuteNeeded && !muted) {
+        window.removeEventListener("pointerdown", onFirstGesture, { capture: true });
+        return;
+      }
+      const ok = await tryUnmutePlay();
+      if (ok) {
+        setMuted(false);
+        setUnmuteNeeded(false);
+        window.removeEventListener("pointerdown", onFirstGesture, { capture: true });
+      } else {
+        setUnmuteNeeded(true);
+        setMuted(true);
+      }
+    };
+
+    window.addEventListener("pointerdown", onFirstGesture, { capture: true });
 
     return () => {
       clearFade();
+      window.removeEventListener("pointerdown", onFirstGesture, { capture: true });
       try {
         audio.pause();
       } catch {}
     };
+    // intentionally empty deps — run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // toggle handler for mute/unmute button (was missing in your posted file)
+  // toggle handler for mute/unmute
   const handleToggle = async () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -104,7 +141,6 @@ export default function WelcomePage() {
         setMuted(false);
         setUnmuteNeeded(false);
       } catch {
-        // still blocked: show unmute needed
         setUnmuteNeeded(true);
         setMuted(true);
       }
@@ -187,8 +223,16 @@ export default function WelcomePage() {
 
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-sm text-slate-600/80 z-10">Built with care • AI + practical sustainability tips</div>
 
-      {/* Ambient audio file — place /public/ambient-forest.mp3 */}
-      <audio ref={audioRef} src="/ambient-forest.mp3" preload="auto" autoPlay loop />
+      {/* Ambient audio file — ensure /public/ambient-forest.mp3 exists */}
+      {/* Muted prop reflects local state so UI and audio attribute remain consistent */}
+      <audio
+        ref={audioRef}
+        src="/ambient-forest.mp3"
+        preload="auto"
+        autoPlay
+        loop
+        muted={muted}
+      />
 
       {/* compact unmute toggle */}
       <button
