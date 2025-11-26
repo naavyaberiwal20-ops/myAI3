@@ -11,6 +11,8 @@ import { useChat } from "@ai-sdk/react";
 import { ArrowUp, Loader2, Square } from "lucide-react";
 import { MessageWall } from "@/components/messages/message-wall";
 import { ChatHeader, ChatHeaderBlock } from "@/app/parts/chat-header";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+
 import { UIMessage } from "ai";
 import { useEffect, useState, useRef } from "react";
 import {
@@ -45,10 +47,7 @@ const loadStorage = () => {
 
 const saveStorage = (messages: UIMessage[], durations: any) => {
   if (typeof window === "undefined") return;
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({ messages, durations })
-  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, durations }));
 };
 
 /* ---------------------- PROFILE TYPES ---------------------- */
@@ -157,7 +156,9 @@ export default function Chat() {
   const suggestionsRef = useRef<string[]>([]);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const stored = typeof window !== "undefined" ? loadStorage() : { messages: [], durations: {} };
+  const stored =
+    typeof window !== "undefined" ? loadStorage() : { messages: [], durations: {} };
+
   const [initialMessages] = useState<UIMessage[]>(stored.messages);
 
   const { messages, sendMessage, status, stop, setMessages } = useChat({
@@ -225,9 +226,7 @@ export default function Chat() {
   const onSubmit = (vals: any) => {
     sendMessage({ text: vals.message });
     form.reset();
-    if (inputRef.current) {
-      inputRef.current.style.height = "44px";
-    }
+    if (inputRef.current) inputRef.current.style.height = "44px";
   };
 
   function clearChat() {
@@ -277,7 +276,7 @@ export default function Chat() {
     );
   };
 
-  /* ---------------------- RENDER ---------------------- */
+  /* RENDER */
   return (
     <div className="flex h-screen justify-center dark:bg-black">
       <main className="w-full h-screen relative">
@@ -286,6 +285,7 @@ export default function Chat() {
         <div className="fixed top-0 left-0 right-0 z-50 pb-16 bg-linear-to-b from-background via-background/50 dark:bg-black">
           <ChatHeader>
             <ChatHeaderBlock />
+
             <ChatHeaderBlock className="justify-center items-center">
               <div className="relative inline-block mr-4">
                 <Image
@@ -299,10 +299,18 @@ export default function Chat() {
               </div>
               <p>Chat with {AI_NAME}</p>
             </ChatHeaderBlock>
-            <ChatHeaderBlock className="justify-end">
+
+            {/* RIGHT SIDE: THEME TOGGLE + CLEAR CHAT */}
+            <ChatHeaderBlock className="justify-end items-center gap-3">
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
+
+              {/* Clear Chat */}
               <Button variant="outline" size="sm" onClick={clearChat}>
                 {CLEAR_CHAT_TEXT}
               </Button>
+
             </ChatHeaderBlock>
           </ChatHeader>
         </div>
@@ -355,7 +363,7 @@ export default function Chat() {
 
                         <div className="relative">
 
-                          {/* TEXTAREA (Supports newlines + auto-resize) */}
+                          {/* TEXTAREA */}
                           <textarea
                             {...field}
                             ref={(el) => {
@@ -373,7 +381,7 @@ export default function Chat() {
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
-                                if (e.shiftKey) return; // newline
+                                if (e.shiftKey) return;
                                 e.preventDefault();
                                 form.handleSubmit(onSubmit)();
                               }
@@ -418,6 +426,7 @@ export default function Chat() {
               Terms of Use
             </Link>
           </div>
+
         </div>
       </main>
 
