@@ -152,10 +152,7 @@ export default function ChatPage() {
         <aside className="sidebar" aria-label="App sidebar">
           <div className="brand">
             <div className="brand-badge"><Image src="/logo.png" width={40} height={40} alt="Greanly" /></div>
-            <div className="brand-info">
-              <div className="brand-title">Greanly</div>
-              <div className="brand-sub">AI + practical sustainability</div>
-            </div>
+            {/* removed duplicate brand text so "Greanly" appears only in header as "Chat with Greanly" */}
           </div>
 
           <div className="sidebar-actions">
@@ -200,7 +197,7 @@ export default function ChatPage() {
           {/* top header */}
           <header className="topbar" style={{ height: HEADER_HEIGHT }}>
             <div className="top-left">
-              <div className="logo-wrap"><Image src="/logo.png" width={44} height={44} alt="Greanly" /></div>
+              {/* removed duplicate logo here so header only shows the Chat title */}
               <div>
                 <div className="title">Chat with Greanly</div>
                 <div className="subtitle">Ask about plans, suppliers and practical steps</div>
@@ -209,7 +206,7 @@ export default function ChatPage() {
 
             <div className="top-controls">
               <ThemeToggle />
-              {/* removed New & Save from top controls as requested */}
+              {/* top-right "New" button removed as requested; clear chat remains */}
               <Button variant="outline" size="sm" onClick={clearChat}>{CLEAR_CHAT_TEXT}</Button>
             </div>
           </header>
@@ -282,8 +279,9 @@ export default function ChatPage() {
         .sidebar { position:sticky; top:20px; height: calc(100vh - 40px); overflow:auto; background: linear-gradient(180deg,#FBFFF9,#F2FBF4); border-radius:12px; padding:16px; border:1px solid rgba(13,59,42,0.04); box-shadow:0 18px 60px rgba(13,59,42,0.04); }
         .brand { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
         .brand-badge { width:54px; height:54px; border-radius:12px; background:linear-gradient(180deg,#E8F7E8,#DFF6E6); display:flex; align-items:center; justify-content:center; }
-        .brand-title { font-weight:800; font-size:16px; color:var(--accent); }
-        .brand-sub { font-size:12px; color:var(--muted); }
+        /* removed brand-title and brand-sub to avoid duplicate Greanly text in both sidebar+header */
+        .brand-title { font-weight:800; font-size:16px; color:var(--accent); display:none; }
+        .brand-sub { font-size:12px; color:var(--muted); display:none; }
 
         .sidebar-actions { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
         .btn { display:inline-flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:700; border:1px solid rgba(13,59,42,0.04); }
@@ -312,7 +310,7 @@ export default function ChatPage() {
         .main { min-height: 60vh; display:flex; flex-direction:column; gap:12px; }
         .topbar { display:flex; align-items:center; justify-content:space-between; padding:10px 6px; background: transparent; }
         .top-left { display:flex; gap:12px; align-items:center; }
-        .logo-wrap { width:56px; height:56px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 26px rgba(13,59,42,0.04); }
+        .logo-wrap { width:56px; height:56px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 26px rgba(13,59,42,0.04); display:none; } /* removed duplicate header logo */
         .title { font-weight:800; color:var(--accent); font-size:18px; }
         .subtitle { font-size:13px; color:var(--muted); }
 
@@ -355,7 +353,7 @@ export default function ChatPage() {
         :global(.dark) .btn.new-left { background: linear-gradient(180deg,#072518,#073826); color:#DFF6E6; border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
         :global(.dark) .btn.ghost { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color: rgba(223,246,230,0.9); border: 1px solid rgba(255,255,255,0.04); box-shadow: none; }
         :global(.dark) .mini { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color: rgba(223,246,230,0.88); border: 1px solid rgba(255,255,255,0.04); }
-        :global(.dark) .tiny { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color: rgba(223,246,230,0.88); border: 1px solid rgba(255,255,255,0.04); }
+        :global(.dark) .tiny { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color: rgba(223,246,230,0.88); border: 1px solid rgba(255,255,42,0.04); }
         :global(.dark) .tiny.danger { color: #FFA8A8; border-color: rgba(255,255,255,0.03); }
 
         :global(.dark) .chat-card { background: linear-gradient(180deg,#061612,#04120F); border-color: rgba(255,255,255,0.03); box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
