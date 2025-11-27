@@ -199,12 +199,12 @@ export default function WelcomePage() {
             </div>
           </section>
 
-          {/* CTA: visually above blob — single style for light & dark */}
+          {/* CTA: visually above blob — unified appearance in all modes */}
           <div className="cta-row" aria-hidden={false}>
             <button onClick={handleGetStarted} className="get-started cta-btn" aria-label="Get Started with Greanly">
-              <svg className="w-5 h-5 -ml-1" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" fill="none" aria-hidden>
-                <path d="M5 12h14" strokeLinecap="round" />
-                <path d="M12 5l7 7-7 7" strokeLinecap="round" />
+              <svg className="cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M5 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <span className="cta-label">Get Started</span>
             </button>
@@ -230,11 +230,17 @@ export default function WelcomePage() {
       <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
 
+        /* central tokens for colors, including CTA */
         :root {
           --accent-1: #0D3B2A;
           --accent-2: #14503B;
           --card-text-light: #10201A;
-          --card-text-dark: #0F3A2E; /* deep green for dark-mode text */
+          --card-text-dark: #0F3A2E;
+
+          /* CTA tokens — dark green background + light green text/arrow */
+          --btn-bg: linear-gradient(180deg, #082e21 0%, #0a3a2a 100%);
+          --btn-text: #DFF6E8; /* light green label & arrow */
+          --btn-glow: rgba(26, 184, 96, 0.15);
         }
 
         .welcome-hero {
@@ -297,21 +303,32 @@ export default function WelcomePage() {
           gap:12px;
           padding:14px 36px;
           border-radius:999px;
-          background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
-          color:#fff;
+          background: var(--btn-bg);
+          color: var(--btn-text);
           font-weight:800;
-          box-shadow:0 26px 64px rgba(13,59,42,0.18);
+          box-shadow:
+            0 18px 40px rgba(4,10,6,0.45),
+            0 8px 34px rgba(3,18,12,0.16),
+            0 0 40px var(--btn-glow);
           border:none;
           cursor:pointer;
           transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms;
           position: relative;
           z-index:60; /* crucial: keeps CTA above blob and other layers */
           opacity:1;
+          -webkit-tap-highlight-color: transparent;
         }
-        .cta-btn:hover { transform: translateY(-4px); box-shadow: 0 36px 92px rgba(13,59,42,0.22); }
+        .cta-btn:hover {
+          transform: translateY(-4px) scale(1.01);
+          box-shadow:
+            0 30px 60px rgba(4,10,6,0.5),
+            0 12px 56px rgba(3,18,12,0.18),
+            0 0 64px rgba(26,184,96,0.22);
+        }
 
-        /* Force the CTA label text to be black in ALL themes */
-        .cta-label { color: #000 !important; font-weight: 800; }
+        /* arrow and label inherit the CTA text color */
+        .cta-arrow { color: var(--btn-text); flex: 0 0 auto; display: inline-block; }
+        .cta-label { color: var(--btn-text); font-weight:800; font-size:16px; }
 
         .welcome-foot { margin-top:20px; color: rgba(16,32,26,0.5); font-size:13px; }
 
@@ -342,16 +359,21 @@ export default function WelcomePage() {
           .welcome-title { font-size:28px; }
         }
 
-        /* Dark mode: ensure card copy uses the deep green, not light green */
+        /* Dark mode: ensure card copy uses the deep green, not washed-out light green
+           and keep CTA consistent across themes (requested same look in all modes). */
         :global(.dark) .welcome-hero { background: linear-gradient(180deg, rgba(6,20,18,0.95), rgba(4,14,12,0.98)); }
         :global(.dark) .welcome-card-content { color: var(--card-text-dark) !important; }
         :global(.dark) .welcome-title { color: var(--card-text-dark) !important; }
         :global(.dark) .feature { background: linear-gradient(180deg, rgba(10,36,30,0.58), rgba(6,28,24,0.46)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 30px rgba(0,0,0,0.28); color: var(--card-text-dark); }
         :global(.dark) .feature-title { color: var(--card-text-dark); }
-        :global(.dark) .cta-btn { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); box-shadow: 0 28px 76px rgba(0,0,0,0.55); color:#fff; }
-        /* ensure the CTA label remains black in dark mode too */
-        :global(.dark) .cta-label { color: #000 !important; }
-
+        /* CTA appearance stays identical in dark mode */
+        :global(.dark) .cta-btn { background: var(--btn-bg); box-shadow:
+            0 18px 40px rgba(4,10,6,0.45),
+            0 8px 34px rgba(3,18,12,0.16),
+            0 0 40px var(--btn-glow);
+        }
+        :global(.dark) .cta-arrow,
+        :global(.dark) .cta-label { color: var(--btn-text); }
       `}</style>
     </main>
   );
