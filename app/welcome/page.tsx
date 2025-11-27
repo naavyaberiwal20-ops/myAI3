@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useCallback } from "react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -95,117 +96,86 @@ export default function WelcomePage() {
     }, AUDIO_PLAY_MS);
   };
 
-  // render empty leaf spans (no emoji content)
+  // render leaf spans (visual via pseudo elements)
   const leaves = Array.from({ length: 14 }).map((_, i) => (
-    <span
-      key={i}
-      className="leaf"
-      style={{ ['--i' as any]: i }}
-      aria-hidden
-    />
+    <span key={i} className="leaf" style={{ ['--i' as any]: i }} aria-hidden />
   ));
 
   return (
-    <main className="welcome-hero min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Gradient background + subtle large blobs */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-20 welcome-bg">
+    <main className="welcome-hero min-h-screen w-full flex flex-col items-center justify-start p-4 relative overflow-hidden">
+      {/* Top header with theme toggle & signin */}
+      <header className="absolute top-4 left-0 right-0 z-40 flex items-center justify-between px-6">
+        <div className="flex items-center gap-4">
+          <div className="logo-small inline-flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/80 shadow-sm border border-emerald-50">
+              <Image src="/logo.png" alt="Greanly" width={36} height={36} />
+            </div>
+            <span className="font-semibold text-emerald-900">Greanly</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <nav className="hidden md:flex items-center gap-4 text-sm text-slate-700">
+            <Link className="hover:underline" href="/about">About</Link>
+            <Link className="hover:underline" href="/pricing">Pricing</Link>
+            <Link className="hover:underline" href="/help">Help</Link>
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link href="/signin" className="text-sm text-slate-700 hover:underline">Sign in</Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Background blobs and subtle pattern */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-30">
         <div className="bg-circle left" />
         <div className="bg-circle right" />
+        <div className="pattern-dots" />
+        <div className="floating-orb" />
       </div>
 
-      {/* decorative left & right inline SVG foliage */}
-      <svg
-        className="decor-left"
-        width="420"
-        height="640"
-        viewBox="0 0 420 640"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden
-      >
+      {/* decorative left & right SVG foliage (overlap) */}
+      <svg className="decor-left" width="560" height="760" viewBox="0 0 560 760" xmlns="http://www.w3.org/2000/svg" aria-hidden>
         <g fill="none" fillRule="evenodd">
-          <path
-            d="M0 360 C40 260 90 220 140 160 C190 100 240 70 300 40 C350 15 420 10 420 10 L420 640 L0 640 Z"
-            fill="#DFF6E6"
-            opacity="0.95"
-          />
-          <g transform="translate(18,40)" opacity="0.98">
-            <path
-              d="M30 420 C56 340 120 300 160 250 C200 200 230 170 290 140"
-              stroke="#14503B"
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeOpacity="0.14"
-            />
-            <path
-              d="M40 380 C72 336 120 310 160 280"
-              stroke="#0D3B2A"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeOpacity="0.18"
-            />
-            <ellipse cx="40" cy="240" rx="34" ry="14" fill="#0D3B2A" opacity="0.12" />
-            <ellipse cx="78" cy="200" rx="26" ry="12" fill="#14503B" opacity="0.08" />
-            <ellipse cx="118" cy="160" rx="36" ry="15" fill="#0D3B2A" opacity="0.14" />
+          <path d="M0 420 C60 300 140 250 220 180 C300 110 360 70 430 40 C500 10 560 0 560 0 L560 760 L0 760 Z" fill="#DFF6E6" opacity="0.95" />
+          <g transform="translate(22,60)" opacity="0.95">
+            <path d="M40 500 C76 410 160 360 210 300 C260 240 300 210 370 170" stroke="#14503B" strokeWidth="6" strokeLinecap="round" strokeOpacity="0.14"/>
+            <path d="M50 440 C88 392 160 360 210 330" stroke="#0D3B2A" strokeWidth="4" strokeLinecap="round" strokeOpacity="0.18"/>
+            <ellipse cx="46" cy="300" rx="44" ry="18" fill="#0D3B2A" opacity="0.10" />
           </g>
         </g>
       </svg>
 
-      <svg
-        className="decor-right"
-        width="520"
-        height="720"
-        viewBox="0 0 520 720"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden
-      >
+      <svg className="decor-right" width="640" height="780" viewBox="0 0 640 780" xmlns="http://www.w3.org/2000/svg" aria-hidden>
         <g fill="none" fillRule="evenodd">
-          <path
-            d="M520 20 C420 80 380 160 320 220 C260 280 200 340 160 420 C120 500 80 580 40 640 L0 720 L520 720 Z"
-            fill="#E9FBF3"
-            opacity="0.95"
-          />
-          <g transform="translate(70,20)" opacity="0.98">
-            <path
-              d="M50 80 C96 140 140 180 190 220 C240 260 270 300 320 360"
-              stroke="#14503B"
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeOpacity="0.14"
-            />
-            <path
-              d="M60 120 C112 180 160 220 200 260"
-              stroke="#0D3B2A"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeOpacity="0.18"
-            />
-            <ellipse cx="240" cy="340" rx="26" ry="12" fill="#14503B" opacity="0.10" />
-            <ellipse cx="200" cy="300" rx="18" ry="8" fill="#0D3B2A" opacity="0.08" />
+          <path d="M640 40 C520 120 480 200 420 260 C360 320 300 380 240 460 C180 540 120 620 60 700 L0 780 L640 780 Z" fill="#E9FBF3" opacity="0.95" />
+          <g transform="translate(86,30)" opacity="0.95">
+            <path d="M60 100 C120 190 200 240 260 300 C320 360 360 420 420 500" stroke="#14503B" strokeWidth="6" strokeLinecap="round" strokeOpacity="0.14"/>
+            <path d="M70 140 C150 230 220 280 280 340" stroke="#0D3B2A" strokeWidth="4" strokeLinecap="round" strokeOpacity="0.18"/>
+            <ellipse cx="300" cy="380" rx="30" ry="14" fill="#14503B" opacity="0.10" />
           </g>
         </g>
       </svg>
 
-      {/* main card wrapper with organic SVG blob */}
-      <div className="welcome-card-wrapper z-10">
-        <svg className="card-blob" viewBox="0 0 900 560" preserveAspectRatio="none" aria-hidden>
+      {/* main card with organic blob */}
+      <div className="welcome-card-wrapper z-20 mt-20 w-full flex justify-center">
+        <svg className="card-blob" viewBox="0 0 1000 620" preserveAspectRatio="none" aria-hidden>
           <defs>
-            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="20" stdDeviation="40" floodColor="rgba(13,59,42,0.06)" />
+            <filter id="softShadow2" x="-40%" y="-40%" width="180%" height="180%">
+              <feDropShadow dx="0" dy="36" stdDeviation="64" floodColor="rgba(13,59,42,0.08)" />
             </filter>
           </defs>
-          <path
-            d="M120 40 C240 -10 520 -10 680 40 C800 75 880 170 860 290 C840 410 720 520 540 520 C360 520 160 500 110 410 C60 320 80 160 120 40 Z"
-            fill="#FFFFFF"
-            filter="url(#softShadow)"
-          />
+          <path d="M120 40 C260 -30 520 -20 720 40 C860 84 960 170 920 310 C880 450 720 560 540 560 C360 560 170 540 110 430 C50 320 68 170 120 40 Z"
+            fill="#FFFFFF" filter="url(#softShadow2)"/>
         </svg>
 
         <div className="welcome-card-content">
           <header className="welcome-top">
-            {/* top-left logo badge */}
             <div className="logo-top-left" aria-hidden>
               <div className="logo-badge">
-                <Image src="/logo.png" width={56} height={56} alt="Greanly" className="rounded-full" />
+                <Image src="/logo.png" width={64} height={64} alt="Greanly" className="rounded-full" />
               </div>
             </div>
 
@@ -217,6 +187,7 @@ export default function WelcomePage() {
             </div>
           </header>
 
+          {/* primary features */}
           <section className="features-grid" aria-hidden>
             <div className="feature">
               <div className="feature-icon">✓</div>
@@ -237,12 +208,28 @@ export default function WelcomePage() {
             </div>
           </section>
 
+          {/* secondary row: quick stats + plan preview */}
+          <div className="secondary-row" aria-hidden>
+            <div className="stat">
+              <div className="stat-num">75%</div>
+              <div className="stat-label">Avg. waste reduction</div>
+            </div>
+            <div className="plan-preview">
+              <div className="plan-title">30/60/90 Plan</div>
+              <div className="plan-items">
+                <span>Phase 1 — Quick wins</span>
+                <span>Phase 2 — System changes</span>
+                <span>Phase 3 — Supplier shifts</span>
+              </div>
+            </div>
+            <div className="stat">
+              <div className="stat-num">2-4 weeks</div>
+              <div className="stat-label">to see impact</div>
+            </div>
+          </div>
+
           <div className="cta-row">
-            <button
-              onClick={handleGetStarted}
-              className="get-started cta-btn"
-              aria-label="Get Started with Greanly"
-            >
+            <button onClick={handleGetStarted} className="get-started cta-btn" aria-label="Get Started">
               <svg className="w-5 h-5 -ml-1" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" fill="none" aria-hidden>
                 <path d="M5 12h14" strokeLinecap="round" />
                 <path d="M12 5l7 7-7 7" strokeLinecap="round" />
@@ -268,281 +255,154 @@ export default function WelcomePage() {
       )}
 
       <style jsx>{`
-        /* ------------------------------
-           Welcome page with subtle foliage overlap
-           ------------------------------ */
+        :root {
+          --bg-start: rgba(237,250,240,1);
+          --bg-end: rgba(245,252,248,1);
+          --card-bg: #ffffff;
+          --dark-bg: #071815;
+          --accent-1: #0D3B2A;
+          --accent-2: #14503B;
+          --muted: rgba(16,32,26,0.6);
+        }
 
-        /* layout & background */
+        /* page base */
         .welcome-hero {
-          background: linear-gradient(180deg, rgba(237,250,240,1) 0%, rgba(245,252,248,1) 100%);
+          background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+          min-height: 100vh;
         }
 
-        .welcome-bg { position: absolute; inset: 0; z-index: -40; pointer-events: none; }
-        .bg-circle { position: absolute; border-radius: 9999px; filter: blur(72px); transform: translateZ(0); }
-        .bg-circle.left {
-          left: -240px;
-          top: -200px;
-          width: 760px;
-          height: 760px;
-          background: linear-gradient(135deg, rgba(223,246,230,1), rgba(201,240,209,0.96));
-          opacity: 0.62;
-        }
-        .bg-circle.right {
-          right: -180px;
-          bottom: -220px;
-          width: 620px;
-          height: 620px;
-          background: linear-gradient(135deg, rgba(240,255,246,1), rgba(217,247,228,0.96));
-          opacity: 0.56;
-        }
+        /* header */
+        header { max-width: 1400px; margin: 0 auto; }
+        .logo-small { color: var(--accent-1); font-weight: 700; }
+        .logo-small img { display:block; }
 
-        /* decorative svg positions
-           z-index here is intentionally above the blob but below the content
-        */
-        .decor-left, .decor-right {
+        /* subtle background shapes */
+        .bg-circle { position: absolute; border-radius: 9999px; transform: translateZ(0); pointer-events: none; }
+        .bg-circle.left { left: -240px; top: -160px; width: 880px; height: 880px; background: linear-gradient(135deg, rgba(223,246,230,1), rgba(201,240,209,0.96)); filter: blur(90px); opacity: 0.6; }
+        .bg-circle.right { right: -180px; bottom: -220px; width: 720px; height: 720px; background: linear-gradient(135deg, rgba(240,255,246,1), rgba(217,247,228,0.96)); filter: blur(72px); opacity: 0.52; }
+
+        /* subtle dotted pattern */
+        .pattern-dots {
           position: absolute;
-          z-index: 8; /* overlap the blob */
+          inset: 0;
+          background-image: radial-gradient(circle at 10% 20%, rgba(13,59,42,0.02) 1px, transparent 1px);
+          background-size: 26px 26px;
+          opacity: 0.28;
+          mask-image: radial-gradient(transparent 0 6%, black 40%);
           pointer-events: none;
-          opacity: 0.98;
-          filter: drop-shadow(0 20px 40px rgba(13,59,42,0.04));
+          z-index: -28;
         }
-        .decor-left { left: 6px; top: 8%; max-width: 360px; transform: translateX(-6%); }
-        .decor-right { right: 6px; bottom: 2%; max-width: 460px; transform: translateX(6%); }
 
-        /* welcome card wrapper: slightly wider, more central */
-        .welcome-card-wrapper {
-          position: relative;
-          z-index: 12;
-          width: min(1200px, 94%);
-          margin: 56px auto;
-          display: grid;
-          place-items: center;
+        .floating-orb {
+          position: absolute;
+          left: 10%;
+          bottom: 4%;
+          width: 200px;
+          height: 200px;
+          border-radius: 9999px;
+          background: radial-gradient(circle at center, rgba(174,240,199,0.18), rgba(174,240,199,0.06));
+          filter: blur(36px);
+          z-index: -27;
+        }
+
+        /* decorative svgs */
+        .decor-left, .decor-right { position: absolute; z-index: 8; pointer-events: none; opacity: 0.98; filter: drop-shadow(0 20px 40px rgba(13,59,42,0.04)); }
+        .decor-left { left: -6%; top: 6%; width: 36vw; max-width: 560px; transform: translateX(-6%); }
+        .decor-right { right: -4%; bottom: -2%; width: 42vw; max-width: 640px; transform: translateX(6%); }
+
+        /* card wrapper and blob */
+        .welcome-card-wrapper { display:flex; justify-content:center; width:100%; pointer-events: auto; }
+        .card-blob { position: absolute; width: 110%; height: auto; left: -5%; top: 8px; z-index: 6; opacity: 0.99; filter: drop-shadow(0 40px 92px rgba(13,59,42,0.08)); }
+
+        .welcome-card-content {
+          position: relative; z-index: 20;
+          width: min(1100px, 92%);
+          margin: 36px 0;
+          padding: 48px 56px;
+          display:flex;
+          flex-direction:column;
+          gap:18px;
+          align-items:center;
+          text-align:center;
           pointer-events: auto;
         }
 
-        /* blob: sits below foliage but above background */
-        .card-blob {
-          position: absolute;
-          width: 108%;
-          height: auto;
-          left: -4%;
-          top: -8px;
-          z-index: 6; /* below foliage (8) but above bg (-40) */
-          overflow: visible;
-          opacity: 0.98;
-          filter: drop-shadow(0 28px 74px rgba(13,59,42,0.07));
-        }
+        /* logo badge */
+        .logo-top-left { position:absolute; left:44px; top:-28px; z-index: 22; width:78px; height:78px; border-radius:999px; background: linear-gradient(180deg, rgba(237,250,240,1), rgba(217,239,224,0.94)); box-shadow: 0 18px 44px rgba(13,59,42,0.06); display:flex; align-items:center; justify-content:center; padding:6px; }
+        .logo-top-left img { border-radius:999px; display:block; }
 
-        /* content container sits above both blob and foliage */
-        .welcome-card-content {
-          position: relative;
-          z-index: 10; /* content on top */
-          width: 84%;
-          max-width: 980px;
-          padding: 64px 56px;
-          display: flex;
-          flex-direction: column;
-          gap: 26px;
-          align-items: center;
-          text-align: center;
-          background: transparent;
-        }
+        /* heading */
+        .welcome-title { font-size:48px; font-weight:900; margin:0; color: var(--accent-1); letter-spacing:-0.6px; }
+        .welcome-sub  { margin:0; margin-top:10px; color: var(--muted); max-width:880px; font-size:16px; line-height:1.6; }
 
-        /* header area */
-        .welcome-top {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 24px;
-          position: relative;
-        }
+        /* primary features */
+        .features-grid { margin-top:6px; width:100%; display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; align-items:stretch; }
+        .feature { background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:8px; align-items:center; border:1px solid rgba(13,59,42,0.035); box-shadow:0 10px 36px rgba(13,59,42,0.03); }
+        .feature-icon { width:56px; height:56px; border-radius:999px; display:grid; place-items:center; font-size:18px; color:var(--accent-1); background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.55); }
+        .feature-title { font-weight:800; color: var(--accent-2); }
+        .feature-sub { font-size:13px; color: rgba(16,32,26,0.56); }
 
-        /* top-left logo badge — larger halo + soft inner shadow */
-        .logo-top-left {
-          position: absolute;
-          left: 36px;
-          top: -16px;
-          z-index: 11;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 72px;
-          height: 72px;
-          border-radius: 9999px;
-          background: linear-gradient(180deg, rgba(237,250,240,1), rgba(217,239,224,0.94));
-          box-shadow: 0 14px 36px rgba(13,59,42,0.06), inset 0 2px 8px rgba(255,255,255,0.3);
-          padding: 8px;
-          transform: translateY(-2px);
-        }
-        .logo-top-left img { border-radius: 9999px; display:block; }
+        /* secondary row */
+        .secondary-row { margin-top:18px; width:100%; display:flex; gap:18px; justify-content:space-between; align-items:center; }
+        .stat { flex:1; background:transparent; display:flex; flex-direction:column; gap:6px; align-items:center; }
+        .stat-num { font-size:20px; font-weight:900; color:var(--accent-2); }
+        .stat-label { font-size:13px; color:rgba(16,32,26,0.6); }
 
-        /* title & subtitle */
-        .welcome-title {
-          font-size: 44px;
-          line-height: 1;
-          font-weight: 800;
-          margin: 0;
-          color: #07221A; /* slightly deeper for premium contrast */
-          letter-spacing: -0.6px;
-          text-rendering: optimizeLegibility;
-        }
-        .welcome-sub {
-          margin-top: 12px;
-          font-size: 16px;
-          color: rgba(16,32,26,0.72);
-          max-width: 820px;
-          margin-left: auto;
-          margin-right: auto;
-          line-height: 1.7;
-        }
-
-        /* features grid */
-        .features-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 18px;
-          width: 100%;
-          margin-top: 8px;
-          justify-items: center;
-        }
-
-        .feature {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          align-items: center;
-          padding: 20px 24px;
-          border-radius: 14px;
-          background: linear-gradient(180deg, rgba(245,252,248,0.94), rgba(237,250,240,0.9));
-          box-shadow: 0 10px 36px rgba(13,59,42,0.03);
-          border: 1px solid rgba(13,59,42,0.035);
-          min-height: 108px;
-          width: 100%;
-          max-width: 320px;
-          transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms;
-        }
-        .feature:hover { transform: translateY(-6px); box-shadow: 0 20px 52px rgba(13,59,42,0.06); }
-
-        /* feature icon */
-        .feature-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 999px;
-          background: linear-gradient(180deg, rgba(236,247,232,0.9), rgba(217,237,224,0.9));
-          display: grid;
-          place-items: center;
-          font-size: 18px;
-          color: #0D3B2A;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(13,59,42,0.03);
-        }
-        .feature-title { font-weight: 800; font-size: 15px; color: #0D2F27; }
-        .feature-sub { font-size: 13px; color: rgba(16,32,26,0.58); margin-top: 4px; }
+        .plan-preview { flex:2; display:flex; flex-direction:column; gap:8px; padding:12px 16px; border-radius:10px; background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border:1px solid rgba(13,59,42,0.03); box-shadow: 0 8px 20px rgba(13,59,42,0.02); }
+        .plan-title { font-weight:800; color:var(--accent-1); }
+        .plan-items { display:flex; gap:10px; color: rgba(16,32,26,0.6); font-size:13px; justify-content:center; flex-wrap:wrap; }
 
         /* CTA */
-        .cta-row { display:flex; justify-content:center; width:100%; margin-top: 6px; }
-        .cta-btn {
-          display:inline-flex;
-          align-items:center;
-          gap:12px;
-          padding:14px 34px;
-          border-radius: 999px;
-          background: linear-gradient(135deg, #0B3A2A, #124632);
-          color: #fff;
-          font-weight: 800;
-          text-decoration: none;
-          box-shadow: 0 18px 48px rgba(13,59,42,0.14);
-          transform: translateY(0);
-          transition: transform 180ms ease, box-shadow 180ms ease;
-          font-size: 16px;
-          border: none;
-          cursor: pointer;
-        }
-        .cta-btn:hover { transform: translateY(-4px); box-shadow: 0 30px 72px rgba(13,59,42,0.18); }
-        .cta-btn svg { transform: translateY(-1px); opacity: 0.95; }
+        .cta-row { margin-top: 14px; display:flex; justify-content:center; width:100%; }
+        .cta-btn { display:inline-flex; align-items:center; gap:12px; padding:12px 32px; border-radius:999px; background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color:#fff; font-weight:800; box-shadow:0 20px 56px rgba(13,59,42,0.12); border:none; cursor:pointer; transition: transform 180ms ease, box-shadow 180ms ease; }
+        .cta-btn:hover { transform: translateY(-4px); box-shadow: 0 36px 92px rgba(13,59,42,0.18); }
 
-        .welcome-foot { margin-top: 8px; color: rgba(16,32,26,0.5); font-size:13px; }
+        .welcome-foot { margin-top:12px; color: rgba(16,32,26,0.5); font-size:13px; }
 
         /* leaves overlay */
         .leaves-overlay { pointer-events:none; position: fixed; inset: 0; z-index: 60; overflow: hidden; display:block; opacity:0; transition: opacity 260ms ease; }
         .leaves-overlay.active { opacity: 1; }
-        .leaves-overlay .leaf {
-          --size: 22px;
-          position: absolute;
-          top: -12%;
-          left: calc(var(--i) * 7%);
-          width: var(--size);
-          height: calc(var(--size) * 0.7);
-          transform-origin: center;
-          opacity: 0;
-          animation: leafFall ${LEAVES_DURATION_MS}ms cubic-bezier(.12,.78,.32,1) forwards;
-          animation-delay: calc(var(--i) * 45ms);
-        }
-        .leaves-overlay .leaf::before {
-          content: "";
-          display:block;
-          width:100%;
-          height:100%;
-          border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%;
-          transform: rotate(-18deg);
-          background: linear-gradient(160deg, rgba(34,139,34,0.95), rgba(106,201,117,0.92));
-          box-shadow: 0 6px 10px rgba(8,20,12,0.06);
-        }
-        .leaves-overlay .leaf::after {
-          content: "";
-          position: absolute;
-          left: 44%;
-          top: 18%;
-          width: 1px;
-          height: 60%;
-          background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.06));
-          transform: rotate(-16deg);
-          border-radius: 1px;
-          opacity: 0.9;
-        }
-        .leaves-overlay .leaf:nth-child(3n) { --size: 26px; }
-        .leaves-overlay .leaf:nth-child(4n) { --size: 18px; }
-
+        .leaves-overlay .leaf { --size:22px; position:absolute; top:-12%; left: calc(var(--i) * 7%); width:var(--size); height: calc(var(--size) * 0.7); transform-origin:center; opacity:0; animation: leafFall ${LEAVES_DURATION_MS}ms cubic-bezier(.12,.78,.32,1) forwards; animation-delay: calc(var(--i) * 45ms); }
+        .leaves-overlay .leaf::before { content:""; display:block; width:100%; height:100%; border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%; transform: rotate(-18deg); background: linear-gradient(160deg, rgba(34,139,34,0.95), rgba(106,201,117,0.92)); box-shadow: 0 6px 10px rgba(8,20,12,0.06); }
+        .leaves-overlay .leaf::after { content:""; position:absolute; left:44%; top:18%; width:1px; height:60%; background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.06)); transform: rotate(-16deg); border-radius:1px; opacity:0.9; }
+        .leaves-overlay .leaf:nth-child(3n) { --size:26px; }
+        .leaves-overlay .leaf:nth-child(4n) { --size:18px; }
         @keyframes leafFall {
-          0% {
-            opacity: 0;
-            transform: translateY(-8vh) translateX(0) rotate(-6deg) scale(0.86);
-            filter: drop-shadow(0 2px 6px rgba(8,20,12,0.02));
-          }
-          12% {
-            opacity: 0.9;
-            transform: translateY(6vh) translateX(2vw) rotate(6deg) scale(1.06);
-          }
-          60% {
-            opacity: 1;
-            transform: translateY(60vh) translateX(8vw) rotate(180deg) scale(0.98);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.94);
-            filter: drop-shadow(0 10px 18px rgba(8,20,12,0.06));
-          }
+          0% { opacity:0; transform: translateY(-8vh) translateX(0) rotate(-6deg) scale(0.86); filter: drop-shadow(0 2px 6px rgba(8,20,12,0.02)); }
+          12% { opacity:0.9; transform: translateY(6vh) translateX(2vw) rotate(6deg) scale(1.06); }
+          60% { opacity:1; transform: translateY(60vh) translateX(8vw) rotate(180deg) scale(0.98); }
+          100% { opacity:0; transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.94); filter: drop-shadow(0 10px 18px rgba(8,20,12,0.06)); }
         }
 
         /* responsive */
         @media (max-width: 1100px) {
-          .decor-left, .decor-right { display: none; }
-          .welcome-card-content { padding: 42px 28px; }
-          .logo-top-left { left: 22px; top: -8px; }
-          .welcome-title { font-size: 30px; }
-          .features-grid { grid-template-columns: 1fr; gap: 12px; }
-          .welcome-card-wrapper { margin: 24px auto; width: min(920px, 94%); }
+          .decor-left, .decor-right { display:none; }
+          .welcome-card-content { padding: 34px 22px; }
+          .features-grid { grid-template-columns: 1fr; gap:14px; }
+          .secondary-row { flex-direction: column; gap:12px; align-items:stretch; }
+          header nav { display:none; }
         }
 
-        @media (max-width: 480px) {
-          .welcome-card-content { padding: 28px 18px; }
-          .logo-top-left { display: none; }
-          .welcome-title { font-size: 22px; }
-          .welcome-sub { font-size: 14px; line-height: 1.5; }
-          .feature { min-height: auto; padding: 12px; border-radius: 12px; }
-          .cta-btn { width: 100%; justify-content: center; padding: 12px 20px; }
-          .decor-left, .decor-right { display: none; }
+        @media (max-width: 640px) {
+          .welcome-title { font-size:28px; }
+          .logo-top-left { display:none; }
+          .plan-items { font-size:12px; gap:6px; }
+          .cta-btn { padding: 12px 18px; width:100%; justify-content:center; }
         }
+
+        /* Dark theme overrides (works if .dark is applied to html/body by next-themes) */
+        :global(.dark) .welcome-hero {
+          --bg-start: rgba(7,24,21,0.9);
+          --bg-end: rgba(6,20,18,0.95);
+          background: linear-gradient(180deg, var(--bg-start), var(--bg-end));
+        }
+        :global(.dark) .pattern-dots { opacity: 0.06; background-image: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.02) 1px, transparent 1px); }
+        :global(.dark) .card-blob path { fill: #071815; }
+        :global(.dark) .welcome-card-content { color: #E7F5EE; }
+        :global(.dark) .feature { background: linear-gradient(180deg, rgba(8,36,30,0.48), rgba(6,28,24,0.42)); border:1px solid rgba(255,255,255,0.03); box-shadow:none; }
+        :global(.dark) .feature-title, :global(.dark) .feature-icon { color: #DFF6E6; }
+        :global(.dark) .feature-sub, :global(.dark) .welcome-sub, :global(.dark) .stat-label { color: rgba(231,245,238,0.82); }
+        :global(.dark) .cta-btn { background: linear-gradient(135deg, #0B3A2A, #124632); box-shadow: 0 18px 48px rgba(0,0,0,0.32); }
       `}</style>
     </main>
   );
