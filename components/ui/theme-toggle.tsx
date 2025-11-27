@@ -4,28 +4,16 @@ import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Sun, Moon, Monitor } from "lucide-react";
 
-/**
- * ThemeToggle
- * - Shows a compact tri-state toggle: Light / Dark / System
- * - Uses next-themes (ThemeProvider should already be set up in layout)
- *
- * Usage:
- * import { ThemeToggle } from "@/components/ui/theme-toggle";
- * <ThemeToggle />
- */
-
 export function ThemeToggle() {
   const { theme, setTheme, systemTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // avoid hydration mismatch: wait until mounted
   useEffect(() => {
     setMounted(true);
   }, []);
 
   if (!mounted) return null;
 
-  // determine current effective theme label
   const effectiveTheme = theme === "system" ? systemTheme : theme;
 
   const buttonClass =
@@ -33,23 +21,14 @@ export function ThemeToggle() {
 
   return (
     <div className="inline-flex items-center gap-2">
-      {/* Light */}
-      <button
-        aria-label="Switch to light theme"
-        title="Light"
-        className={`${buttonClass} ${effectiveTheme === "light" ? "bg-card text-card-foreground" : "bg-transparent"}`}
-        onClick={() => setTheme("light")}
-        type="button"
-      >
-        <Sun className="w-4 h-4" />
-        <span className="hidden sm:inline">Light</span>
-      </button>
 
-      {/* System */}
+      {/* System FIRST */}
       <button
         aria-label="Use system theme"
         title="System"
-        className={`${buttonClass} ${theme === "system" ? "bg-card text-card-foreground" : "bg-transparent"}`}
+        className={`${buttonClass} ${
+          theme === "system" ? "bg-card text-card-foreground" : "bg-transparent"
+        }`}
         onClick={() => setTheme("system")}
         type="button"
       >
@@ -57,11 +36,31 @@ export function ThemeToggle() {
         <span className="hidden sm:inline">System</span>
       </button>
 
-      {/* Dark */}
+      {/* Light SECOND */}
+      <button
+        aria-label="Switch to light theme"
+        title="Light"
+        className={`${buttonClass} ${
+          effectiveTheme === "light"
+            ? "bg-card text-card-foreground"
+            : "bg-transparent"
+        }`}
+        onClick={() => setTheme("light")}
+        type="button"
+      >
+        <Sun className="w-4 h-4" />
+        <span className="hidden sm:inline">Light</span>
+      </button>
+
+      {/* Dark THIRD */}
       <button
         aria-label="Switch to dark theme"
         title="Dark"
-        className={`${buttonClass} ${effectiveTheme === "dark" ? "bg-card text-card-foreground" : "bg-transparent"}`}
+        className={`${buttonClass} ${
+          effectiveTheme === "dark"
+            ? "bg-card text-card-foreground"
+            : "bg-transparent"
+        }`}
         onClick={() => setTheme("dark")}
         type="button"
       >
