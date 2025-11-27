@@ -1,12 +1,12 @@
+// app/chat/page.tsx
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
-
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
-import { ArrowUp, Loader2, Square } from "lucide-react";
-
+import { ArrowUp, Loader2, Square, Archive, Plus } from "lucide-react";
 import { toast } from "sonner";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,307 +15,339 @@ import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { MessageWall } from "@/components/messages/message-wall";
-import { ChatHeader, ChatHeaderBlock } from "@/app/parts/chat-header";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
-import {
-  AI_NAME,
-  CLEAR_CHAT_TEXT,
-  OWNER_NAME,
-  WELCOME_MESSAGE,
-} from "@/config";
-
+import { AI_NAME, CLEAR_CHAT_TEXT, OWNER_NAME, WELCOME_MESSAGE } from "@/config";
 import { UIMessage } from "ai";
 
-/* ---------------------- SCHEMA ---------------------- */
-const formSchema = z.object({
-  message: z.string().min(1).max(2000),
-});
-
-/* ---------------------- STORAGE ---------------------- */
+/* ---------------- schema + storage ---------------- */
+const formSchema = z.object({ message: z.string().min(1).max(2000) });
 const STORAGE_KEY = "chat-messages";
+const HISTORY_KEY = "chat-history-v1";
 
 const loadStorage = () => {
   if (typeof window === "undefined") return { messages: [], durations: {} };
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    return {
-      messages: parsed.messages || [],
-      durations: parsed.durations || {},
-    };
-  } catch {
-    return { messages: [], durations: {} };
-  }
+    return { messages: parsed.messages || [], durations: parsed.durations || {} };
+  } catch { return { messages: [], durations: {} }; }
 };
-
-const saveStorage = (messages: UIMessage[], durations: any) => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, durations }));
+const loadHistory = () => {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch { return []; }
 };
+const saveHistory = (h: any[]) => { if (typeof window === "undefined") return; localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); };
+const saveStorage = (messages: UIMessage[], durations: any) => { if (typeof window === "undefined") return; localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, durations })); };
 
-/* ---------------------- HELPERS ---------------------- */
-function normalizeNumberedList(text: string) {
-  if (!text) return text;
-  const lines = text.split("\n");
-  const numbered = lines.map((ln) => ln.match(/^\s*(\d+)\.\s+/) ? true : false);
-  if (!numbered.some(Boolean)) return text;
-
-  let counter = 0;
-  return lines
-    .map((ln) => {
-      const m = ln.match(/^\s*(\d+)\.\s+(.*)$/);
-      if (m) {
-        if (counter === 0) counter = 1;
-        const newLine = `${counter}. ${m[2]}`;
-        counter++;
-        return newLine;
-      } else {
-        counter = 0;
-        return ln;
-      }
-    })
-    .join("\n");
-}
-
-/* ---------------------- CHAT PAGE ---------------------- */
-export default function Chat() {
+/* ---------------- page ---------------- */
+export default function ChatPage() {
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [durations, setDurations] = useState<Record<string, number>>({});
   const welcomeSeen = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const stored =
-    typeof window !== "undefined" ? loadStorage() : { messages: [], durations: {} };
+  const stored = typeof window !== "undefined" ? loadStorage() : { messages: [], durations: {} };
   const [initialMessages] = useState<UIMessage[]>(stored.messages);
 
-  const { messages, sendMessage, status, stop, setMessages } = useChat({
-    messages: initialMessages,
-  });
+  const { messages, sendMessage, status, stop, setMessages } = useChat({ messages: initialMessages });
 
-  /* INIT */
+  const [history, setHistory] = useState<any[]>(loadHistory());
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+
+  /* init */
   useEffect(() => {
     setIsClient(true);
     setDurations(stored.durations);
     setMessages(stored.messages);
-    // small scroll correction after mount
-    setTimeout(() => {
-      if (messagesContainerRef.current) messagesContainerRef.current.scrollTop = 0;
-    }, 80);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (isClient) saveStorage(messages, durations);
-  }, [messages, durations, isClient]);
+  useEffect(() => { if (isClient) saveStorage(messages, durations); }, [messages, durations, isClient]);
 
-  /* WELCOME MESSAGE */
+  /* welcome */
   useEffect(() => {
     if (!isClient || welcomeSeen.current || initialMessages.length > 0) return;
-
-    const normalized = normalizeNumberedList(WELCOME_MESSAGE || "");
-    const welcomeMsg: UIMessage = {
-      id: "welcome-" + Date.now(),
-      role: "assistant",
-      parts: [{ type: "text", text: normalized }],
-    };
-
+    const welcomeMsg: UIMessage = { id: "welcome-" + Date.now(), role: "assistant", parts: [{ type: "text", text: WELCOME_MESSAGE }] };
     setMessages([welcomeMsg]);
     saveStorage([welcomeMsg], {});
     welcomeSeen.current = true;
-
-    setTimeout(() => {
-      if (messagesContainerRef.current) messagesContainerRef.current.scrollTop = 0;
-    }, 120);
   }, [isClient]);
 
-  /* FORM */
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: { message: "" },
-  });
+  /* form */
+  const form = useForm({ resolver: zodResolver(formSchema), defaultValues: { message: "" } });
 
   const onSubmit = (vals: any) => {
     sendMessage({ text: vals.message });
     form.reset();
     if (inputRef.current) inputRef.current.style.height = "44px";
-    setTimeout(() => {
-      if (messagesContainerRef.current)
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-    }, 300);
   };
 
   function clearChat() {
     setMessages([]);
     setDurations({});
     saveStorage([], {});
+    setSelectedHistoryId(null);
     toast.success("Chat cleared");
-    welcomeSeen.current = false;
   }
 
-  /* ---------------------- RENDER ---------------------- */
+  /* sidebar actions */
+  const newChat = () => {
+    clearChat();
+    const starter: UIMessage = { id: `assistant-${Date.now()}`, role: "assistant", parts: [{ type: "text", text: WELCOME_MESSAGE }] };
+    setMessages([starter]);
+    saveStorage([starter], {});
+    setSelectedHistoryId(null);
+  };
+
+  const insertPlanPrompt = () => {
+    const planPrompt =
+      "Create a concise 30/60/90 day sustainability action plan for a small business focused on reducing waste and sourcing better materials. Prioritise quick wins first.";
+    sendMessage({ text: planPrompt });
+  };
+
+  const loadHistoryItem = (id: string) => {
+    const h = loadHistory();
+    const item = h.find((x: any) => x.id === id);
+    if (!item) { toast.error("History not found"); return; }
+    setMessages(item.messages);
+    saveStorage(item.messages, {});
+    setSelectedHistoryId(id);
+    toast.success(`Loaded "${item.title}"`);
+  };
+
+  const saveCurrentToHistory = () => {
+    if (!isClient) return;
+    const existing = loadHistory();
+    const title = `Saved ${new Date().toLocaleString()}`;
+    const id = "h-" + Date.now();
+    const newItem = { id, title, messages };
+    const next = [newItem, ...existing].slice(0, 12);
+    saveHistory(next);
+    setHistory(next);
+    toast.success("Saved conversation");
+  };
+
+  const deleteHistoryItem = (id: string) => {
+    const existing = loadHistory();
+    const next = existing.filter((x: any) => x.id !== id);
+    saveHistory(next);
+    setHistory(next);
+    if (selectedHistoryId === id) setSelectedHistoryId(null);
+    toast.success("Deleted");
+  };
+
+  useEffect(() => {
+    const handler = () => setHistory(loadHistory());
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  /* layout constants */
+  const HEADER_HEIGHT = 84; // ensures enough top padding so first message isn't hidden
+
   return (
-    <div className="flex h-screen justify-center bg-transparent">
-      <main className="w-full h-screen relative">
+    <div className="greanly-shell">
+      <div className="page-grid">
+        {/* SIDEBAR */}
+        <aside className="sidebar" aria-label="App sidebar">
+          <div className="brand">
+            <div className="brand-badge"><Image src="/logo.png" width={40} height={40} alt="Greanly" /></div>
+            <div className="brand-info">
+              <div className="brand-title">Greanly</div>
+              <div className="brand-sub">AI + practical sustainability</div>
+            </div>
+          </div>
 
-        {/* HEADER (fixed + ensured above overlay) */}
-        <div
-          className="fixed top-0 left-0 right-0 pb-16"
-          style={{ zIndex: 80, backdropFilter: "saturate(120%) blur(6px)" }}
-        >
-          <div className="bg-white/85 dark:bg-black/85">
-            <ChatHeader>
-              <ChatHeaderBlock />
-              <ChatHeaderBlock className="justify-center items-center">
-                <div className="relative inline-block mr-4">
-                  <Image
-                    src="/logo.png"
-                    width={60}
-                    height={60}
-                    alt="Greanly Avatar"
-                    className="rounded-full"
-                  />
-                  <span className="absolute bottom-1 right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+          <div className="sidebar-actions">
+            <button className="btn primary" onClick={newChat}><Plus size={14} /> <span>New Chat</span></button>
+            <button className="btn ghost" onClick={insertPlanPrompt}><Archive size={14} /> <span>30/60/90 plan</span></button>
+          </div>
+
+          <div className="history-head">
+            <div>History</div>
+            <div className="history-controls">
+              <button className="mini" onClick={() => { setHistory(loadHistory()); toast.success("History refreshed"); }}>Refresh</button>
+              <button className="mini" onClick={saveCurrentToHistory}>Save</button>
+            </div>
+          </div>
+
+          <nav className="history-list" aria-label="Saved conversations">
+            {history.length === 0 && <div className="empty">No saved conversations yet</div>}
+            {history.map((h: any) => (
+              <div key={h.id} className={`history-item ${selectedHistoryId === h.id ? "active" : ""}`}>
+                <div className="history-main" role="button" onClick={() => loadHistoryItem(h.id)}>
+                  <div className="history-title">{h.title}</div>
+                  <div className="history-meta">{(h.messages?.length || 0)} msgs</div>
                 </div>
-                <p className="text-slate-900 dark:text-slate-100">Chat with {AI_NAME}</p>
-              </ChatHeaderBlock>
-
-              <ChatHeaderBlock className="justify-end items-center space-x-3">
-                <ThemeToggle />
-
-                <Button variant="outline" size="sm" onClick={clearChat}>
-                  {CLEAR_CHAT_TEXT}
-                </Button>
-              </ChatHeaderBlock>
-            </ChatHeader>
-          </div>
-        </div>
-
-        {/* MESSAGES */}
-        <div
-          ref={messagesContainerRef}
-          className="h-screen overflow-y-auto px-5 py-4 pt-[120px] pb-[200px] flex flex-col items-center"
-        >
-          <div className="w-full max-w-3xl">
-            <div
-              className="rounded-2xl p-6"
-              style={{
-                background: "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.94))",
-                border: "1px solid rgba(13,59,42,0.04)",
-                boxShadow: "0 20px 60px rgba(13,59,42,0.04)",
-                minHeight: 420,
-              }}
-            >
-              <div className="mb-4 text-sm text-slate-600 dark:text-slate-300">
-                Ask me about sustainability, suppliers, or request a 30/60/90 plan.
+                <div className="history-actions">
+                  <button className="tiny" onClick={() => { navigator.clipboard?.writeText(JSON.stringify(h.messages || [])); toast.success("Copied"); }}>Copy</button>
+                  <button className="tiny danger" onClick={() => deleteHistoryItem(h.id)}>Del</button>
+                </div>
               </div>
+            ))}
+          </nav>
 
-              <div style={{ minHeight: 240 }}>
-                {isClient ? (
-                  <>
-                    <MessageWall
-                      messages={messages}
-                      status={status}
-                      durations={durations}
-                      onDurationChange={(k, d) =>
-                        setDurations((prev) => ({ ...prev, [k]: d }))
-                      }
-                    />
-                    {status === "submitted" && (
-                      <div className="mt-4 flex items-center justify-center">
-                        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                  </div>
-                )}
+          <div className="sidebar-footer">Pro tip: save chats you want to revisit</div>
+        </aside>
+
+        {/* MAIN */}
+        <main className="main">
+          {/* top header */}
+          <header className="topbar" style={{ height: HEADER_HEIGHT }}>
+            <div className="top-left">
+              <div className="logo-wrap"><Image src="/logo.png" width={44} height={44} alt="Greanly" /></div>
+              <div>
+                <div className="title">Chat with Greanly</div>
+                <div className="subtitle">Ask about plans, suppliers and practical steps</div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* INPUT BAR (fixed and above overlay) */}
-        <div
-          className="fixed bottom-0 left-0 right-0"
-          style={{ zIndex: 80, backdropFilter: "saturate(120%) blur(6px)" }}
-        >
-          <div className="bg-white/92 dark:bg-black/92 pb-3 pt-3">
-            <div className="w-full px-5 flex justify-center">
-              <div className="max-w-3xl w-full">
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                  <FieldGroup>
-                    <Controller
-                      name="message"
-                      control={form.control}
-                      render={({ field }) => (
-                        <Field>
-                          <FieldLabel className="sr-only">Message</FieldLabel>
-                          <div className="relative">
-                            <textarea
-                              {...field}
-                              ref={(el) => {
-                                field.ref(el);
-                                inputRef.current = el;
-                              }}
-                              id="chat-form-message"
-                              className="w-full min-h-[48px] max-h-[220px] resize-none overflow-y-auto pl-6 pr-20 py-4 rounded-[28px] bg-gray-100 dark:bg-zinc-900 text-sm text-slate-900 dark:text-slate-100"
-                              placeholder="Type your message..."
-                              disabled={status === "streaming"}
-                              onInput={(e) => {
-                                const ta = e.currentTarget;
-                                ta.style.height = "auto";
-                                ta.style.height = ta.scrollHeight + "px";
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  if (e.shiftKey) return;
-                                  e.preventDefault();
-                                  form.handleSubmit(onSubmit)();
-                                }
-                              }}
-                            />
+            <div className="top-controls">
+              <ThemeToggle />
+              <Button variant="outline" size="sm" onClick={clearChat}>{CLEAR_CHAT_TEXT}</Button>
+              <Button variant="ghost" size="sm" onClick={saveCurrentToHistory}>Save</Button>
+            </div>
+          </header>
 
-                            {(status === "ready" || status === "error") && (
-                              <Button
-                                type="submit"
-                                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
-                                size="icon"
-                                disabled={!field.value.trim()}
-                              >
-                                <ArrowUp className="size-4" />
-                              </Button>
-                            )}
+          {/* card container */}
+          <section className="chat-card" style={{ paddingTop: HEADER_HEIGHT - 10 }}>
+            <div className="messages-wrap" role="log" aria-live="polite">
+              <div className="messages-inner">
+                <MessageWall messages={messages} status={status} durations={durations} onDurationChange={(k, d) => setDurations((p) => ({ ...p, [k]: d }))} />
+                {status === "submitted" && <div className="loading"><Loader2 className="spin" /></div>}
+              </div>
+            </div>
 
-                            {(status === "streaming" || status === "submitted") && (
-                              <Button
-                                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
-                                size="icon"
-                                onClick={() => stop()}
-                              >
-                                <Square className="size-4" />
-                              </Button>
-                            )}
+            {/* input bar */}
+            <div className="composer">
+              <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(onSubmit)(); }} style={{ width: "100%" }}>
+                <FieldGroup>
+                  <Controller
+                    name="message"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Field>
+                        <FieldLabel className="sr-only">Message</FieldLabel>
+                        <div className="composer-row">
+                          <textarea
+                            {...field}
+                            ref={(el) => { field.ref(el); inputRef.current = el; }}
+                            placeholder="Type your message..."
+                            disabled={status === "streaming"}
+                            onInput={(e) => {
+                              const ta = e.currentTarget; ta.style.height = "auto"; ta.style.height = ta.scrollHeight + "px";
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.handleSubmit(onSubmit)(); }
+                            }}
+                            className="composer-input"
+                            aria-label="Type your message"
+                          />
+                          <div className="composer-actions">
+                            {(status === "ready" || status === "error") && <Button type="submit" className="send" size="icon" disabled={!field.value.trim()}><ArrowUp /></Button>}
+                            {(status === "streaming" || status === "submitted") && <Button className="stop" size="icon" onClick={() => stop()}><Square /></Button>}
                           </div>
-                        </Field>
-                      )}
-                    />
-                  </FieldGroup>
-                </form>
-              </div>
+                        </div>
+                      </Field>
+                    )}
+                  />
+                </FieldGroup>
+              </form>
             </div>
+          </section>
 
-            <div className="text-xs text-center text-muted-foreground mt-3">
-              © {new Date().getFullYear()} {OWNER_NAME} ·{" "}
-              <Link href="/terms" className="underline">
-                Terms of Use
-              </Link>
-            </div>
-          </div>
-        </div>
-      </main>
+          <footer className="main-footer">© {new Date().getFullYear()} {OWNER_NAME} · <Link href="/terms" className="link">Terms of Use</Link></footer>
+        </main>
+      </div>
+
+      {/* scoped styles */}
+      <style jsx>{`
+        :root {
+          --bg: #F6FFF8;
+          --card: #FFFFFF;
+          --muted: rgba(13,59,42,0.55);
+          --accent: #0D3B2A;
+          --accent-2: #14503B;
+        }
+        .greanly-shell { background: linear-gradient(180deg,var(--bg), #F2FFF6); min-height:100vh; padding:22px 20px; }
+
+        .page-grid { max-width:1400px; margin:0 auto; display:grid; grid-template-columns: 300px 1fr; gap:24px; align-items:start; }
+
+        /* SIDEBAR */
+        .sidebar { position:sticky; top:20px; height: calc(100vh - 40px); overflow:auto; background: linear-gradient(180deg,#FBFFF9,#F2FBF4); border-radius:12px; padding:16px; border:1px solid rgba(13,59,42,0.04); box-shadow:0 18px 60px rgba(13,59,42,0.04); }
+        .brand { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+        .brand-badge { width:54px; height:54px; border-radius:12px; background:linear-gradient(180deg,#E8F7E8,#DFF6E6); display:flex; align-items:center; justify-content:center; }
+        .brand-title { font-weight:800; font-size:16px; color:var(--accent); }
+        .brand-sub { font-size:12px; color:var(--muted); }
+
+        .sidebar-actions { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+        .btn { display:inline-flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:700; border:1px solid rgba(13,59,42,0.04); }
+        .btn.primary { background: linear-gradient(135deg,var(--accent),var(--accent-2)); color:white; box-shadow: 0 12px 36px rgba(13,59,42,0.12); }
+        .btn.ghost { background: #fff; color: var(--accent); }
+
+        .history-head { display:flex; align-items:center; justify-content:space-between; gap:12px; font-weight:700; color:var(--accent); margin-bottom:6px; }
+        .history-controls { display:flex; gap:8px; }
+        .mini { padding:6px 8px; border-radius:8px; background:white; border:1px solid rgba(13,59,42,0.04); cursor:pointer; font-size:12px; }
+
+        .history-list { display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+        .history-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px; border-radius:8px; }
+        .history-item .history-main { cursor:pointer; flex:1; }
+        .history-item.active { background: rgba(13,59,42,0.04); }
+        .history-title { font-weight:700; color:var(--accent); }
+        .history-meta { font-size:12px; color:var(--muted); }
+        .history-actions { display:flex; gap:6px; }
+        .tiny { padding:6px 8px; border-radius:8px; background:white; border:1px solid rgba(13,59,42,0.04); cursor:pointer; font-size:12px; }
+        .tiny.danger { color: #B52525; border-color: rgba(181,37,37,0.06); }
+
+        .sidebar-footer { margin-top:14px; font-size:12px; color:var(--muted); }
+
+        /* MAIN */
+        .main { min-height: 60vh; display:flex; flex-direction:column; gap:12px; }
+        .topbar { display:flex; align-items:center; justify-content:space-between; padding:10px 6px; background: transparent; }
+        .top-left { display:flex; gap:12px; align-items:center; }
+        .logo-wrap { width:56px; height:56px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 26px rgba(13,59,42,0.04); }
+        .title { font-weight:800; color:var(--accent); font-size:18px; }
+        .subtitle { font-size:13px; color:var(--muted); }
+
+        .top-controls { display:flex; gap:8px; align-items:center; }
+
+        .chat-card { background: linear-gradient(180deg, #fff, #FBFFF9); border-radius:12px; padding:18px; border:1px solid rgba(13,59,42,0.04); box-shadow:0 18px 60px rgba(13,59,42,0.04); }
+
+        .messages-wrap { max-height: calc(70vh - 80px); overflow:auto; padding:6px; }
+        .messages-inner { display:flex; justify-content:center; }
+        .messages-inner > :global(*) { width:100%; max-width:820px; } /* keep MessageWall same width */
+
+        .composer { margin-top:12px; }
+        .composer-row { display:flex; gap:10px; align-items:flex-end; }
+        .composer-input { width:100%; min-height:48px; max-height:220px; padding:12px 14px; border-radius:10px; border:1px solid rgba(13,59,42,0.06); resize:none; font-size:14px; }
+        .composer-actions { display:flex; align-items:center; gap:8px; }
+        .send { background: linear-gradient(135deg,var(--accent),var(--accent-2)); color:white; border-radius:999px; padding:10px; box-shadow: 0 12px 36px rgba(13,59,42,0.12); }
+        .stop { background:#F3F3F3; border-radius:10px; padding:8px; }
+
+        .main-footer { margin-top:10px; color:var(--muted); font-size:13px; text-align:center; }
+
+        /* small helpers */
+        .empty { color: rgba(13,59,42,0.45); font-size:13px; }
+        .loading { display:flex; justify-content:center; margin-top:10px; color:var(--muted); }
+
+        /* responsive */
+        @media (max-width: 980px) {
+          .page-grid { grid-template-columns: 1fr; padding:12px; }
+          .sidebar { position:relative; height:auto; margin-bottom:12px; }
+          .messages-wrap { max-height: 50vh; }
+        }
+
+        /* DARK MODE overrides - keeps contrast and avoids washed out tones */
+        :global(.dark) .greanly-shell { background: linear-gradient(180deg,#061612, #062018); }
+        :global(.dark) .sidebar { background: linear-gradient(180deg,#071815, #071E18); border-color: rgba(255,255,255,0.04); box-shadow: 0 18px 40px rgba(0,0,0,0.6); }
+        :global(.dark) .brand-title, :global(.dark) .history-title, :global(.dark) .title { color: #CFEFE0; }
+        :global(.dark) .brand-sub, :global(.dark) .history-meta, :global(.dark) .subtitle, :global(.dark) .sidebar-footer { color: rgba(255,255,255,0.64); }
+        :global(.dark) .btn.primary { box-shadow: 0 10px 36px rgba(0,0,0,0.6); background: linear-gradient(135deg,#0B2B22,#0F3A2E); }
+        :global(.dark) .chat-card { background: linear-gradient(180deg,#061612,#04120F); border-color: rgba(255,255,255,0.03); box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+        :global(.dark) .composer-input { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.04); color: #E6F6EE; }
+        :global(.dark) .history-item.active { background: rgba(255,255,255,0.02); }
+        :global(.dark) .tiny.danger { color: #FFA8A8; border-color: rgba(255,255,255,0.03); }
+      `}</style>
     </div>
   );
 }
