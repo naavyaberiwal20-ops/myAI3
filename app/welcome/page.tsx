@@ -4,55 +4,62 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState, useCallback } from "react";
 
-export default function Page() {
+export default function WelcomePage() {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const fadeRef = useRef<number | null>(null);
+  const fadeIntervalRef = useRef<number | null>(null);
 
-  const [leavesMounted, setLeavesMounted] = useState(false);
+  // timings (ms)
+  const AUDIO_PLAY_MS = 3000; // play 3 seconds
+  const LEAVES_DURATION_MS = 1400; // how long leaf fall animation lasts
+  const LEAVES_SHOW_DELAY = 120; // slight delay before showing leaves after click
+
   const [leavesActive, setLeavesActive] = useState(false);
-  const [navigating, setNavigating] = useState(false);
+  const [leavesMounted, setLeavesMounted] = useState(false);
 
-  const AUDIO_MS = 3000;
-  const LEAVES_MS = 1500;
-
-  const clearFade = () => {
-    if (fadeRef.current) {
-      window.clearInterval(fadeRef.current);
-      fadeRef.current = null;
+  const clearFadeInterval = () => {
+    if (fadeIntervalRef.current) {
+      window.clearInterval(fadeIntervalRef.current);
+      fadeIntervalRef.current = null;
     }
   };
 
   const fadeOutAudio = useCallback((duration = 600) => {
     const audio = audioRef.current;
     if (!audio) return;
+
     try {
-      const start = Math.max(0, Math.min(1, audio.volume || 0.36));
-      const steps = Math.max(6, Math.ceil(duration / 40));
+      const startVol = Math.max(0, Math.min(1, audio.volume || 0.36));
+      const steps = Math.max(4, Math.ceil(duration / 50));
       let step = 0;
-      clearFade();
-      fadeRef.current = window.setInterval(() => {
+      clearFadeInterval();
+
+      fadeIntervalRef.current = window.setInterval(() => {
         step++;
-        const t = step / steps;
-        audio.volume = Number((start * (1 - t)).toFixed(3));
+        const fraction = step / steps;
+        const newVol = Math.max(0, startVol * (1 - fraction));
+        audio.volume = Number(newVol.toFixed(3));
         if (step >= steps) {
-          clearFade();
+          clearFadeInterval();
           try {
             audio.pause();
             audio.currentTime = 0;
-            audio.volume = start;
+            audio.volume = startVol; // restore nominal volume for next play
             audio.loop = false;
           } catch {}
         }
       }, Math.round(duration / steps));
     } catch {
-      try { audio.pause(); audio.currentTime = 0; } catch {}
-      clearFade();
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {}
+      clearFadeInterval();
     }
   }, []);
 
   const handleGetStarted = async () => {
-    // audio playback on user gesture
+    // play audio on gesture
     try {
       if (audioRef.current) {
         audioRef.current.volume = 0.36;
@@ -60,91 +67,114 @@ export default function Page() {
         await audioRef.current.play();
       }
     } catch {
-      /* ignore - continue */
+      // ignore
     }
 
-    // mount leaves container then activate for a short run
+    // mount leaves container first (so CSS + DOM exist), then activate with small delay
     setLeavesMounted(true);
-    // slight delay for CSS paint
-    setTimeout(() => setLeavesActive(true), 90);
+    window.setTimeout(() => setLeavesActive(true), LEAVES_SHOW_DELAY);
 
-    // hide leaves after their animation finishes
-    setTimeout(() => {
+    // hide leaves after their duration to keep UI clean
+    window.setTimeout(() => {
       setLeavesActive(false);
-      setTimeout(() => setLeavesMounted(false), 420);
-    }, LEAVES_MS + 300);
+      // unmount after animation ends
+      window.setTimeout(() => setLeavesMounted(false), 400);
+    }, LEAVES_DURATION_MS + 300);
 
-    // stop audio (fade) and navigate with a gentle page fade
-    setTimeout(() => {
-      try { fadeOutAudio(600); } catch {}
-      setTimeout(() => {
-        setNavigating(true);
-        // match CSS transition delay
-        setTimeout(() => router.push("/chat"), 520);
-      }, 420);
-    }, AUDIO_MS);
+    // wait for audio snippet, then fade out and navigate
+    window.setTimeout(() => {
+      try {
+        if (audioRef.current) fadeOutAudio(600);
+      } catch {}
+      // navigate shortly after fade-out begins (ensures fade plays)
+      window.setTimeout(() => {
+        router.push("/chat");
+      }, 700);
+    }, AUDIO_PLAY_MS);
   };
 
-  // 12 leaves, empty spans (no emoji text)
-  const leaves = Array.from({ length: 12 }).map((_, i) => (
-    <span key={i} className="leaf" style={{ ["--i" as any]: i }} />
+  // render empty leaf spans (no emoji content)
+  const leaves = Array.from({ length: 14 }).map((_, i) => (
+    <span
+      key={i}
+      className="leaf"
+      style={{ ['--i' as any]: i }}
+      aria-hidden
+    />
   ));
 
   return (
-    <main className={`min-h-screen flex items-center justify-center p-8 bg-gradient-to-b from-emerald-50 to-white ${navigating ? "page-exit" : ""}`}>
-      {/* subtle background depth */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-20">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#F4FFF8] to-white opacity-95" />
-        <div className="absolute -left-24 -top-24 w-96 h-96 rounded-full bg-gradient-to-tr from-[#DFF6E6] to-transparent opacity-60 blur-3xl" />
-        <div className="absolute -right-28 -bottom-28 w-80 h-80 rounded-full bg-gradient-to-br from-[#E8FFF1] to-transparent opacity-60 blur-2xl" />
+    <main className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden bg-gradient-to-b from-emerald-50 to-white">
+      {/* background decorative circles */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-20">
+        <div className="absolute -left-40 -top-40 w-[520px] h-[520px] rounded-full bg-gradient-to-tr from-[#DFF6E6] to-[#C9F0D1] opacity-60 blur-3xl" />
+        <div className="absolute -right-32 -bottom-44 w-[420px] h-[420px] rounded-full bg-gradient-to-br from-[#F0FFF6] to-[#D9F7E4] opacity-55 blur-2xl" />
       </div>
 
-      {/* Card */}
+      {/* card */}
       <div
-        className="relative z-10 w-full max-w-3xl rounded-2xl p-12 md:p-14 bg-white/95 backdrop-blur-md border border-emerald-900/6 shadow-xl transition-transform duration-400 ease-out"
-        style={{ transform: "translateZ(0)" }}
+        className="relative z-10 w-full max-w-3xl mx-auto rounded-2xl py-10 px-8 md:px-16 shadow-xl"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.92), rgba(245,255,245,0.78))",
+          backdropFilter: "saturate(140%) blur(6px)",
+          border: "1px solid rgba(24,32,20,0.06)",
+        }}
       >
-        {/* rim glow */}
-        <div aria-hidden style={{
-          position: "absolute",
-          inset: -2,
-          borderRadius: 16,
-          pointerEvents: "none",
-          boxShadow: "0 18px 60px rgba(6,95,70,0.06) inset",
-          zIndex: -1
-        }} />
-
         <div className="flex flex-col items-center text-center gap-6">
           {/* logo */}
-          <div className="relative w-28 h-28 rounded-full grid place-items-center bg-white shadow-md border border-emerald-100">
-            <img src="/logo.png" alt="Greanly logo" width={88} height={88} />
-            <div aria-hidden className="absolute -inset-3 rounded-full border border-emerald-200/40" />
+          <div className="relative animate-logo-lift">
+            <div aria-hidden className="absolute -inset-6 rounded-full -z-10 shimmer-ring" style={{ width: 168, height: 168 }} />
+            <div className="inline-flex items-center justify-center w-28 h-28 rounded-full bg-white/90 shadow-md">
+              <img src="/logo.png" alt="Greanly logo" width={92} height={92} />
+            </div>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">Welcome to Greanly</h1>
-
-          <p className="max-w-2xl text-slate-700 text-lg md:text-xl leading-relaxed">
-            Practical, measurable sustainability insights — with instant steps your business can take today.
+          {/* hero */}
+          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">Greanly</h1>
+          <p className="max-w-2xl text-neutral-700 text-base md:text-lg">
+            Make your business greener — practical, measurable steps that save money and reduce waste.
           </p>
 
+          {/* three benefit tiles */}
+          <div className="mt-4 w-full max-w-2xl grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="flex flex-col items-center gap-3 p-4 rounded-md bg-white/50 border border-transparent">
+              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-700">✓</div>
+              <div className="text-sm text-slate-700">Cut costs & waste with practical steps</div>
+            </div>
+            <div className="flex flex-col items-center gap-3 p-4 rounded-md bg-white/50 border border-transparent">
+              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-700">🔎</div>
+              <div className="text-sm text-slate-700">Find sustainable suppliers & materials</div>
+            </div>
+            <div className="flex flex-col items-center gap-3 p-4 rounded-md bg-white/50 border border-transparent">
+              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-700">⚙️</div>
+              <div className="text-sm text-slate-700">Simple action plans (30/60/90 days)</div>
+            </div>
+          </div>
+
+          {/* CTA */}
           <div className="mt-6">
             <button
               onClick={handleGetStarted}
-              className="inline-flex items-center gap-3 px-8 py-3 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold shadow-lg transform transition active:scale-95"
+              className="get-started inline-flex items-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-7 py-3 rounded-full shadow-lg transform transition active:scale-95"
+              aria-label="Get Started with Greanly"
             >
-              <span className="inline-block w-5">➜</span>
+              <svg className="w-5 h-5 -ml-1" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" fill="none">
+                <path d="M5 12h14" strokeLinecap="round" />
+                <path d="M12 5l7 7-7 7" strokeLinecap="round" />
+              </svg>
               Get Started
             </button>
           </div>
         </div>
       </div>
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-sm text-slate-600/80 z-10">Built with care • AI + Sustainability</div>
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-sm text-slate-600/80 z-10">Built with care • AI + practical sustainability tips</div>
 
-      {/* audio */}
+      {/* audio (will be triggered by the click) */}
       <audio ref={audioRef} src="/ambient-forest.mp3" preload="auto" />
 
-      {/* leaves mounted only when needed */}
+      {/* leaves overlay: mounted only when needed to avoid any initial paint issues */}
       {leavesMounted && (
         <div className={`leaves-overlay ${leavesActive ? "active" : ""}`} aria-hidden>
           {leaves}
@@ -152,85 +182,96 @@ export default function Page() {
       )}
 
       <style jsx>{`
-        /* page exit animation */
-        .page-exit { animation: pageExit 520ms ease forwards; }
-        @keyframes pageExit {
-          0% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-8px) scale(0.998); }
+        .get-started:hover {
+          transform: translateY(-6px) scale(1.02);
+          box-shadow: 0 18px 40px rgba(16, 185, 129, 0.18), 0 6px 18px rgba(16, 185, 129, 0.06);
         }
 
-        /* leaves overlay */
+        .animate-logo-lift { animation: lift 900ms cubic-bezier(0.2,0.9,0.2,1) both; }
+        .shimmer-ring { background: radial-gradient(circle at 30% 30%, rgba(165,255,205,0.95) 0%, rgba(165,255,205,0.6) 18%, rgba(255,255,255,0.02) 60%); filter: blur(28px); opacity: 0.95; animation: shimmerScale 3200ms ease-in-out infinite; }
+        @keyframes shimmerScale { 0% { transform: scale(0.96) rotate(0deg); opacity: 0.75; } 50% { transform: scale(1.03) rotate(7deg); opacity: 1; } 100% { transform: scale(0.96) rotate(0deg); opacity: 0.75; } }
+        @keyframes lift { from { transform: translateY(14px) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+        /* Leaves overlay */
         .leaves-overlay {
+          pointer-events: none;
           position: fixed;
           inset: 0;
           z-index: 60;
-          pointer-events: none;
           overflow: hidden;
+          display: block;
           opacity: 0;
-          transition: opacity 240ms ease;
+          transition: opacity 260ms ease;
         }
-        .leaves-overlay.active { opacity: 1; }
+        .leaves-overlay.active {
+          opacity: 1;
+        }
 
-        /* leaf basic (empty span, CSS pseudo draws the leaf) */
-        .leaf {
+        /* each leaf is an empty span; visual is built with ::before / ::after so no emoji text appears */
+        .leaves-overlay .leaf {
+          --size: 22px;
           position: absolute;
-          top: -10%;
-          left: calc(var(--i) * 8%);
-          width: 18px;
-          height: 12px;
+          top: -12%;
+          left: calc(var(--i) * 7%);
+          width: var(--size);
+          height: calc(var(--size) * 0.7);
           transform-origin: center;
           opacity: 0;
-          animation: leafFall ${LEAVES_MS}ms cubic-bezier(.15,.9,.35,1) forwards;
-          animation-delay: calc(var(--i) * 55ms);
+          animation: leafFall ${LEAVES_DURATION_MS}ms cubic-bezier(.12,.78,.32,1) forwards;
+          animation-delay: calc(var(--i) * 45ms);
         }
 
-        .leaf::before {
+        /* decorative leaf shape using pseudo-elements (no emoji glyphs) */
+        .leaves-overlay .leaf::before {
           content: "";
           display: block;
           width: 100%;
           height: 100%;
           border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%;
           transform: rotate(-18deg);
-          background: linear-gradient(160deg, rgba(34,139,34,0.95), rgba(94,212,134,0.92));
+          background: linear-gradient(160deg, rgba(34,139,34,0.95), rgba(106,201,117,0.92));
           box-shadow: 0 6px 10px rgba(8,20,12,0.06);
         }
-        .leaf::after {
+        .leaves-overlay .leaf::after {
           content: "";
           position: absolute;
-          left: 46%;
+          left: 44%;
           top: 18%;
           width: 1px;
           height: 60%;
-          background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(0,0,0,0.06));
+          background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.06));
           transform: rotate(-16deg);
-          opacity: 0.95;
+          border-radius: 1px;
+          opacity: 0.9;
         }
 
-        .leaf:nth-child(3n) { width: 22px; height: 14px; }
-        .leaf:nth-child(4n) { width: 14px; height: 10px; }
+        /* variety in sizes */
+        .leaves-overlay .leaf:nth-child(3n) { --size: 26px; }
+        .leaves-overlay .leaf:nth-child(4n) { --size: 18px; }
 
         @keyframes leafFall {
           0% {
             opacity: 0;
-            transform: translateY(-8vh) translateX(0) rotate(-8deg) scale(0.9);
+            transform: translateY(-8vh) translateX(0) rotate(-6deg) scale(0.86);
+            filter: drop-shadow(0 2px 6px rgba(8,20,12,0.02));
           }
-          15% {
-            opacity: 0.96;
-            transform: translateY(8vh) translateX(2.2vw) rotate(6deg) scale(1.05);
+          12% {
+            opacity: 0.9;
+            transform: translateY(6vh) translateX(2vw) rotate(6deg) scale(1.06);
           }
           60% {
             opacity: 1;
-            transform: translateY(60vh) translateX(10vw) rotate(180deg) scale(0.98);
+            transform: translateY(60vh) translateX(8vw) rotate(180deg) scale(0.98);
           }
           100% {
             opacity: 0;
-            transform: translateY(120vh) translateX(22vw) rotate(420deg) scale(0.94);
+            transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.94);
+            filter: drop-shadow(0 10px 18px rgba(8,20,12,0.06));
           }
         }
 
-        /* small screens */
         @media (max-width: 640px) {
-          .leaf { left: calc(var(--i) * 6%); }
+          .leaves-overlay .leaf { left: calc(var(--i) * 6%); --size: 14px; }
         }
       `}</style>
     </main>
