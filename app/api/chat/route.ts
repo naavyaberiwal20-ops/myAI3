@@ -1,124 +1,168 @@
 // app/api/chat/route.ts
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { isContentFlagged } from "@/lib/moderation";
 import { SYSTEM_PROMPT } from "@/prompts";
+import { isContentFlagged } from "@/lib/moderation";
 
 /**
- * Simple, robust non-streaming chat route for quick recovery.
- * - Expects JSON body with either:
- *   { messages: UIMessage[] }  (your current UI shape) OR
- *   { message: "string" }
+ * Very defensive chat route:
+ * - Accepts { messages: UIMessage[] } (your UI shape) OR { message: "string" }
+ * - Runs moderation check (but continues if moderation throws)
+ * - Calls OpenAI chat/completions with timeout
+ * - Returns JSON { ok, reply, error?, debug? }
  *
- * Returns JSON: { reply: string }
+ * COPY + REPLACE this file and deploy.
  */
 
-type Part = { type: "text" | string; text?: string };
-type UIMessage = { role: "user" | "assistant" | "system"; parts: Part[] };
+type Part = { type?: string; text?: string };
+type UIMessage = { role?: string; parts?: Part[] };
 
-function extractTextFromParts(parts?: Part[]): string {
+function extractTextFromParts(parts?: Part[] | any): string {
   if (!parts || !Array.isArray(parts)) return "";
   return parts
-    .filter((p) => p?.type === "text")
-    .map((p) => ("text" in p && typeof p.text === "string" ? p.text : ""))
+    .map((p) => (p && typeof p.text === "string" ? p.text : ""))
     .join(" ")
     .trim();
 }
 
+function getLastUserMessage(messages?: UIMessage[] | any): string {
+  if (!Array.isArray(messages)) return "";
+  // walk from end for last user
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (!m) continue;
+    const role = (m.role || "").toString().toLowerCase();
+    if (role === "user") {
+      // try parts first
+      const parts = m.parts ?? m.content ?? m.text ?? [];
+      const extracted = extractTextFromParts(parts);
+      if (extracted) return extracted;
+      // fallback to "content" if it's a string
+      if (typeof m.content === "string" && m.content.trim()) return m.content.trim();
+      if (typeof m.text === "string" && m.text.trim()) return m.text.trim();
+    }
+  }
+  return "";
+}
+
 export async function POST(req: Request) {
+  // Always return JSON (helpful for debugging)
   try {
     const body = await req.json().catch(() => ({}));
-    // Normalize input: either messages[] (UI format) or a single message string
-    const incomingMessages: UIMessage[] | undefined = body?.messages;
-    const fallbackMessage: string | undefined = body?.message;
+    const incomingMessages = Array.isArray(body?.messages) ? body.messages : undefined;
+    const fallbackMessage = typeof body?.message === "string" ? body.message : undefined;
 
-    // Determine latest user text
-    let latestUserText = "";
-
-    if (Array.isArray(incomingMessages) && incomingMessages.length > 0) {
-      // find last user message
-      const lastUser = incomingMessages
-        .filter((m) => m.role === "user")
-        .slice(-1)[0];
-      latestUserText = extractTextFromParts(lastUser?.parts);
-    }
-
-    if (!latestUserText && typeof fallbackMessage === "string") {
-      latestUserText = fallbackMessage.trim();
-    }
+    // find latest user message
+    let latestUserText = getLastUserMessage(incomingMessages);
+    if (!latestUserText && fallbackMessage) latestUserText = fallbackMessage.trim();
 
     if (!latestUserText) {
-      return NextResponse.json({ error: "No user message provided" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: "No user message provided" }, { status: 400 });
     }
 
-    // Moderation check (your existing function)
+    // Moderation check - don't fail the whole request if moderation errors
     try {
-      const moderationResult = await isContentFlagged(latestUserText);
-      if (moderationResult?.flagged) {
-        // Return the denial message as the reply so front-end can show it
-        const denial = moderationResult.denialMessage || "Your message violates our guidelines.";
-        return NextResponse.json({ reply: denial });
+      const mod = await isContentFlagged(latestUserText);
+      if (mod?.flagged) {
+        const denial = mod.denialMessage || "Your message violates our guidelines. I can't answer that.";
+        console.warn("Moderation flagged message. Returning denial.");
+        return NextResponse.json({ ok: true, reply: denial, moderated: true });
       }
-    } catch (modErr) {
-      // don't block request if moderation fails — log and continue
-      console.error("Moderation check failed:", modErr);
+    } catch (mErr) {
+      console.error("Moderation function threw an error; continuing request. Error:", mErr);
     }
 
-    // OpenAI key
     const OPENAI_KEY = process.env.OPENAI_API_KEY;
     if (!OPENAI_KEY) {
-      console.error("Missing OPENAI_API_KEY environment variable");
-      return NextResponse.json({ error: "Server misconfigured (OPENAI_API_KEY missing)" }, { status: 500 });
+      console.error("Missing OPENAI_API_KEY environment variable.");
+      return NextResponse.json({ ok: false, error: "OPENAI_API_KEY missing on server" }, { status: 500 });
     }
 
-    // Model: change if you need a different variant
+    // MODEL — change if your account uses different name (gpt-5.1, gpt-5.1-mini, etc.)
     const MODEL = "gpt-5.1";
 
-    // Build the messages we send to OpenAI: system prompt (from your prompts) + user message
+    // Build messages for OpenAI
     const messages = [
-      { role: "system", content: (SYSTEM_PROMPT ?? "You are a helpful assistant.") },
+      { role: "system", content: typeof SYSTEM_PROMPT === "string" && SYSTEM_PROMPT.length > 0 ? SYSTEM_PROMPT : "You are a helpful assistant." },
       { role: "user", content: latestUserText },
     ];
 
-    const payload = {
-      model: MODEL,
-      messages,
-      temperature: 0.2,
-      max_tokens: 900,
-      // you can add other options here (top_p, frequency_penalty, etc.)
-    };
+    // Timeout and fetch options
+    const controller = new AbortController();
+    const TIMEOUT_MS = 20000; // 20s
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_KEY}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    let openaiStatus = -1;
+    let openaiBodyText = "";
 
-    const rawText = await resp.text();
+    try {
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_KEY}`,
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: MODEL,
+          messages,
+          temperature: 0.2,
+          max_tokens: 900,
+        }),
+      });
 
-    if (!resp.ok) {
-      console.error("OpenAI API error:", resp.status, rawText);
-      // try parse provider response and return helpful info
-      let parsed = {};
-      try { parsed = JSON.parse(rawText); } catch {}
-      return NextResponse.json({ error: "OpenAI API error", detail: parsed }, { status: 502 });
+      openaiStatus = resp.status;
+      openaiBodyText = await resp.text();
+
+      if (!resp.ok) {
+        console.error("OpenAI API returned non-OK:", resp.status, openaiBodyText);
+        // return helpful debug info but still user-friendly message
+        return NextResponse.json({
+          ok: false,
+          error: "OpenAI API error",
+          openaiStatus,
+          openaiBody: openaiBodyText,
+        }, { status: 502 });
+      }
+
+      // parse
+      let data: any;
+      try {
+        data = JSON.parse(openaiBodyText);
+      } catch (e) {
+        data = { raw: openaiBodyText };
+      }
+
+      const reply =
+        data?.choices?.[0]?.message?.content ??
+        data?.choices?.[0]?.text ??
+        (typeof openaiBodyText === "string" ? openaiBodyText : JSON.stringify(data));
+
+      clearTimeout(timeout);
+
+      // Success — return reply
+      return NextResponse.json({
+        ok: true,
+        reply: (reply || "").toString().trim(),
+        debug: { openaiStatus, model: MODEL },
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeout);
+      // handle timeout/abort
+      const isAbort = fetchErr?.name === "AbortError" || fetchErr?.message?.toLowerCase()?.includes("aborted");
+      console.error("OpenAI fetch failed:", fetchErr?.message ?? fetchErr, "abort?", isAbort);
+      // Fallback: return friendly fallback reply so UI doesn't hang
+      const fallback = "Sorry — I'm temporarily unavailable. Please try again in a few seconds.";
+      return NextResponse.json({
+        ok: false,
+        error: "OpenAI request failed",
+        message: fallback,
+        fetchError: String(fetchErr?.message ?? fetchErr),
+        openaiStatus,
+        openaiBody: openaiBodyText,
+      }, { status: 502 });
     }
-
-    // parse success response
-    let data: any = {};
-    try { data = JSON.parse(rawText); } catch (e) { data = { raw: rawText }; }
-
-    const reply =
-      data?.choices?.[0]?.message?.content?.trim() ??
-      data?.choices?.[0]?.text?.trim() ??
-      (typeof rawText === "string" ? rawText : JSON.stringify(data));
-
-    return NextResponse.json({ reply });
   } catch (err: any) {
-    console.error("Unhandled /api/chat error:", err?.message ?? err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Unhandled error in /api/chat:", err);
+    return NextResponse.json({ ok: false, error: "Internal server error", detail: String(err?.message ?? err) }, { status: 500 });
   }
 }
