@@ -12,10 +12,9 @@ import { SYSTEM_PROMPT } from "@/prompts";
 import { isContentFlagged } from "@/lib/moderation";
 
 import { webSearch } from "./tools/web-search";
-import { searchPinecone } from "@/lib/pinecone";
+import { vectorDatabaseSearch } from "./tools/search-vector-database";
 
-// how many context characters to consider "strong match"
-const RAG_MIN_CONTEXT_LENGTH = 120;
+// Intentionally NOT importing supplier-search here so external search cannot crash the route.
 
 export const maxDuration = 30;
 
@@ -23,34 +22,33 @@ export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json();
 
-    // 1) moderation check
+    // 1) moderation on latest user text
     const latestUserMessage = messages.filter((m) => m.role === "user").pop();
-    let userText = "";
 
     if (latestUserMessage) {
-      userText = latestUserMessage.parts
-        .filter((p: any) => p.type === "text")
-        .map((p: any) => p.text || "")
-        .join(" ");
+      const textParts = latestUserMessage.parts
+        .filter((p) => p.type === "text")
+        .map((p: any) => ("text" in p ? p.text : ""))
+        .join("");
 
-      if (userText) {
-        const mod = await isContentFlagged(userText);
+      if (textParts) {
+        const moderationResult = await isContentFlagged(textParts);
 
-        if (mod.flagged) {
+        if (moderationResult.flagged) {
           const stream = createUIMessageStream({
             execute({ writer }) {
-              writer.write({ type: "start" });
+              const textId = "moderation-denial-text";
 
-              writer.write({ type: "text-start", id: "mod" });
+              writer.write({ type: "start" });
+              writer.write({ type: "text-start", id: textId });
               writer.write({
                 type: "text-delta",
-                id: "mod",
+                id: textId,
                 delta:
-                  mod.denialMessage ??
+                  moderationResult.denialMessage ||
                   "Your message violates our guidelines. I can't answer that.",
               });
-              writer.write({ type: "text-end", id: "mod" });
-
+              writer.write({ type: "text-end", id: textId });
               writer.write({ type: "finish" });
             },
           });
@@ -60,34 +58,15 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2) ALWAYS query Pinecone first
-    // This returns a string containing extracted context OR "" if nothing useful
-    const ragContext = await searchPinecone(userText);
-
-    // If context exists, prepend it to the LLM system prompt
-    const fullSystemPrompt = ragContext.trim().length > RAG_MIN_CONTEXT_LENGTH
-      ? `${SYSTEM_PROMPT}
-
-========================
-CONTEXT FROM KNOWLEDGE BASE
-(Use this **silently**. Do NOT mention the database.)
-========================
-${ragContext}
-========================
-
-When replying:
-- ONLY use this context if relevant.
-- If irrelevant or incomplete, think and answer normally.
-- NEVER tell the user the source.`
-      : SYSTEM_PROMPT;
-
-    // 3) Run LLM with webSearch as fallback
+    // 2) safe streamText call WITHOUT the external supplier tool
     const result = streamText({
       model: MODEL,
-      system: fullSystemPrompt,
+      system: SYSTEM_PROMPT,
       messages: convertToModelMessages(messages),
       tools: {
+        // keep webSearch (if you want to allow it) and vectorDatabaseSearch
         webSearch,
+        vectorDatabaseSearch,
       },
       stopWhen: stepCountIs(10),
       providerOptions: {
@@ -99,23 +78,25 @@ When replying:
       },
     });
 
-    return result.toUIMessageStreamResponse({ sendReasoning: true });
-  } catch (err) {
+    return result.toUIMessageStreamResponse({
+      sendReasoning: true,
+    });
+  } catch (err: any) {
+    // If anything unexpected happens, return a safe error message to the UI stream so user sees it.
     console.error("Chat route runtime error:", err);
 
     const stream = createUIMessageStream({
       execute({ writer }) {
+        const textId = "fatal-error-text";
         writer.write({ type: "start" });
-
-        writer.write({ type: "text-start", id: "fatal-error" });
+        writer.write({ type: "text-start", id: textId });
         writer.write({
           type: "text-delta",
-          id: "fatal-error",
+          id: textId,
           delta:
-            "Sorry — the assistant encountered an internal error. Please try again shortly.",
+            "Sorry — the assistant experienced an internal error. Try again in a moment. If the problem persists, contact support.",
         });
-        writer.write({ type: "text-end", id: "fatal-error" });
-
+        writer.write({ type: "text-end", id: textId });
         writer.write({ type: "finish" });
       },
     });
