@@ -53,12 +53,44 @@ const saveStorage = (messages: UIMessage[], durations: any) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, durations }));
 };
 
+/* ---------------------- HELPERS ---------------------- */
+
+// Normalize numbered list lines so numbering always starts at 1.
+// Example: lines starting "2. ..." become "1. ...", "3. ..." -> "2. ...", etc.
+function normalizeNumberedList(text: string) {
+  if (!text) return text;
+  const lines = text.split("\n");
+  // detect only if there is at least one numbered line anywhere
+  const numbered = lines.map((ln) => ln.match(/^\s*(\d+)\.\s+/) ? true : false);
+  if (!numbered.some(Boolean)) return text;
+
+  // Build new lines: renumber sequentially for continuous blocks
+  let counter = 0;
+  return lines
+    .map((ln) => {
+      const m = ln.match(/^\s*(\d+)\.\s+(.*)$/);
+      if (m) {
+        // if previous line wasn't numbered and we start a new block, reset to 1
+        if (counter === 0) counter = 1;
+        const newLine = `${counter}. ${m[2]}`;
+        counter++;
+        return newLine;
+      } else {
+        // non-number lines -> reset counter
+        counter = 0;
+        return ln;
+      }
+    })
+    .join("\n");
+}
+
 /* ---------------------- CHAT PAGE ---------------------- */
 export default function Chat() {
   const [isClient, setIsClient] = useState(false);
   const [durations, setDurations] = useState<Record<string, number>>({});
   const welcomeSeen = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
   const stored =
     typeof window !== "undefined" ? loadStorage() : { messages: [], durations: {} };
@@ -73,25 +105,41 @@ export default function Chat() {
     setIsClient(true);
     setDurations(stored.durations);
     setMessages(stored.messages);
+    // ensure we keep the stored messages visible
+    // small delay to let DOM paint
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = 0;
+      }
+    }, 80);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (isClient) saveStorage(messages, durations);
   }, [messages, durations, isClient]);
 
-  /* WELCOME MESSAGE */
+  /* WELCOME MESSAGE (normalize numbering & ensure single insertion) */
   useEffect(() => {
     if (!isClient || welcomeSeen.current || initialMessages.length > 0) return;
 
+    const normalized = normalizeNumberedList(WELCOME_MESSAGE || "");
     const welcomeMsg: UIMessage = {
       id: "welcome-" + Date.now(),
       role: "assistant",
-      parts: [{ type: "text", text: WELCOME_MESSAGE }],
+      parts: [{ type: "text", text: normalized }],
     };
 
     setMessages([welcomeMsg]);
     saveStorage([welcomeMsg], {});
     welcomeSeen.current = true;
+
+    // ensure the message area is visible and readable (scroll to top)
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = 0;
+      }
+    }, 120);
   }, [isClient]);
 
   /* FORM */
@@ -106,6 +154,12 @@ export default function Chat() {
     if (inputRef.current) {
       inputRef.current.style.height = "44px";
     }
+    // ensure we reveal latest response once appended - small delay
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    }, 300);
   };
 
   function clearChat() {
@@ -113,146 +167,170 @@ export default function Chat() {
     setDurations({});
     saveStorage([], {});
     toast.success("Chat cleared");
+    // ensure welcome message reappears next time
+    welcomeSeen.current = false;
   }
 
   /* ---------------------- RENDER ---------------------- */
   return (
-    <div className="flex h-screen justify-center">
-      <main
-        className="w-full h-screen relative"
-        style={{
-          backgroundImage: `
-            linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.92)),
-            url('/recycled-paper.png')
-          `,
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center bottom",
-          backgroundSize: "cover",
-        }}
-      >
+    <div className="flex h-screen justify-center bg-transparent">
+      <main className="w-full h-screen relative">
 
-        {/* HEADER */}
-        <div className="fixed top-0 left-0 right-0 z-50 pb-16 bg-white/90 dark:bg-black/90 backdrop-blur-sm">
-          <ChatHeader>
-            <ChatHeaderBlock />
-            <ChatHeaderBlock className="justify-center items-center">
-              <div className="relative inline-block mr-4">
-                <Image
-                  src="/logo.png"
-                  width={60}
-                  height={60}
-                  alt="Greanly Avatar"
-                  className="rounded-full"
-                />
-                <span className="absolute bottom-1 right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
-              </div>
-              <p>Chat with {AI_NAME}</p>
-            </ChatHeaderBlock>
+        {/* HEADER (glass) */}
+        <div className="fixed top-0 left-0 right-0 z-50 pb-16"
+             style={{ backdropFilter: "saturate(120%) blur(6px)" }}>
+          <div className="bg-white/85 dark:bg-black/85">
+            <ChatHeader>
+              <ChatHeaderBlock />
+              <ChatHeaderBlock className="justify-center items-center">
+                <div className="relative inline-block mr-4">
+                  <Image
+                    src="/logo.png"
+                    width={60}
+                    height={60}
+                    alt="Greanly Avatar"
+                    className="rounded-full"
+                  />
+                  <span className="absolute bottom-1 right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                </div>
+                <p className="text-slate-900 dark:text-slate-100">Chat with {AI_NAME}</p>
+              </ChatHeaderBlock>
 
-            <ChatHeaderBlock className="justify-end items-center space-x-3">
-              <ThemeToggle />
-              <Button variant="outline" size="sm" onClick={clearChat}>
-                {CLEAR_CHAT_TEXT}
-              </Button>
-            </ChatHeaderBlock>
-          </ChatHeader>
+              <ChatHeaderBlock className="justify-end items-center space-x-3">
+                <ThemeToggle />
+
+                <Button variant="outline" size="sm" onClick={clearChat}>
+                  {CLEAR_CHAT_TEXT}
+                </Button>
+              </ChatHeaderBlock>
+            </ChatHeader>
+          </div>
         </div>
 
         {/* MESSAGES */}
-        <div className="h-screen overflow-y-auto px-5 py-4 pt-[88px] pb-[150px]">
-          <div className="flex flex-col items-center">
-            {isClient ? (
-              <>
-                <MessageWall
-                  messages={messages}
-                  status={status}
-                  durations={durations}
-                  onDurationChange={(k, d) =>
-                    setDurations((prev) => ({ ...prev, [k]: d }))
-                  }
-                />
-                {status === "submitted" && (
-                  <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        <div
+          ref={messagesContainerRef}
+          className="h-screen overflow-y-auto px-5 py-4 pt-[108px] pb-[190px] flex flex-col items-center"
+        >
+          {/* central content column with readable surface so the paper texture doesn't wash text out */}
+          <div className="w-full max-w-3xl">
+            <div
+              className="rounded-2xl p-6"
+              style={{
+                background: "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.92))",
+                border: "1px solid rgba(13,59,42,0.04)",
+                boxShadow: "0 20px 60px rgba(13,59,42,0.04)",
+                minHeight: 420,
+              }}
+            >
+              <div className="mb-4 text-sm text-slate-600 dark:text-slate-300">
+                {/* Helpful short instruction above messages (keeps the UX friendly) */}
+                Ask me about sustainability, suppliers, or request a 30/60/90 plan.
+              </div>
+
+              <div style={{ minHeight: 240 }}>
+                {isClient ? (
+                  <>
+                    <MessageWall
+                      messages={messages}
+                      status={status}
+                      durations={durations}
+                      onDurationChange={(k, d) =>
+                        setDurations((prev) => ({ ...prev, [k]: d }))
+                      }
+                    />
+                    {status === "submitted" && (
+                      <div className="mt-4 flex items-center justify-center">
+                        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                  </div>
                 )}
-              </>
-            ) : (
-              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            )}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* INPUT */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-black/90 backdrop-blur-sm pb-3 pt-13">
-          <div className="w-full px-5 flex justify-center">
-            <div className="max-w-3xl w-full">
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                <FieldGroup>
-                  <Controller
-                    name="message"
-                    control={form.control}
-                    render={({ field }) => (
-                      <Field>
-                        <FieldLabel className="sr-only">Message</FieldLabel>
-                        <div className="relative">
-                          <textarea
-                            {...field}
-                            ref={(el) => {
-                              field.ref(el);
-                              inputRef.current = el;
-                            }}
-                            id="chat-form-message"
-                            className="w-full min-h-[44px] max-h-[200px] resize-none overflow-y-auto pl-5 pr-20 py-3 rounded-[20px] bg-gray-100 dark:bg-zinc-900 text-sm"
-                            placeholder="Type your message…"
-                            disabled={status === "streaming"}
-                            onInput={(e) => {
-                              const ta = e.currentTarget;
-                              ta.style.height = "auto";
-                              ta.style.height = ta.scrollHeight + "px";
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                if (e.shiftKey) return;
-                                e.preventDefault();
-                                form.handleSubmit(onSubmit)();
-                              }
-                            }}
-                          />
+        {/* INPUT BAR (glass pill) */}
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50"
+          style={{ backdropFilter: "saturate(120%) blur(6px)" }}
+        >
+          <div className="bg-white/92 dark:bg-black/92 pb-3 pt-3">
+            <div className="w-full px-5 flex justify-center">
+              <div className="max-w-3xl w-full">
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                  <FieldGroup>
+                    <Controller
+                      name="message"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Field>
+                          <FieldLabel className="sr-only">Message</FieldLabel>
+                          <div className="relative">
+                            <textarea
+                              {...field}
+                              ref={(el) => {
+                                field.ref(el);
+                                inputRef.current = el;
+                              }}
+                              id="chat-form-message"
+                              className="w-full min-h-[48px] max-h-[220px] resize-none overflow-y-auto pl-6 pr-20 py-4 rounded-[28px] bg-gray-100 dark:bg-zinc-900 text-sm text-slate-900 dark:text-slate-100"
+                              placeholder="Type your message..."
+                              disabled={status === "streaming"}
+                              onInput={(e) => {
+                                const ta = e.currentTarget;
+                                ta.style.height = "auto";
+                                ta.style.height = ta.scrollHeight + "px";
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  if (e.shiftKey) return;
+                                  e.preventDefault();
+                                  form.handleSubmit(onSubmit)();
+                                }
+                              }}
+                            />
 
-                          {(status === "ready" || status === "error") && (
-                            <Button
-                              type="submit"
-                              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
-                              size="icon"
-                              disabled={!field.value.trim()}
-                            >
-                              <ArrowUp className="size-4" />
-                            </Button>
-                          )}
+                            {(status === "ready" || status === "error") && (
+                              <Button
+                                type="submit"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
+                                size="icon"
+                                disabled={!field.value.trim()}
+                              >
+                                <ArrowUp className="size-4" />
+                              </Button>
+                            )}
 
-                          {(status === "streaming" || status === "submitted") && (
-                            <Button
-                              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
-                              size="icon"
-                              onClick={() => stop()}
-                            >
-                              <Square className="size-4" />
-                            </Button>
-                          )}
-
-                        </div>
-                      </Field>
-                    )}
-                  />
-                </FieldGroup>
-              </form>
+                            {(status === "streaming" || status === "submitted") && (
+                              <Button
+                                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full"
+                                size="icon"
+                                onClick={() => stop()}
+                              >
+                                <Square className="size-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </Field>
+                      )}
+                    />
+                  </FieldGroup>
+                </form>
+              </div>
             </div>
-          </div>
 
-          <div className="text-xs text-center text-muted-foreground">
-            © {new Date().getFullYear()} {OWNER_NAME} ·{" "}
-            <Link href="/terms" className="underline">
-              Terms of Use
-            </Link>
+            <div className="text-xs text-center text-muted-foreground mt-3">
+              © {new Date().getFullYear()} {OWNER_NAME} ·{" "}
+              <Link href="/terms" className="underline">
+                Terms of Use
+              </Link>
+            </div>
           </div>
         </div>
       </main>
