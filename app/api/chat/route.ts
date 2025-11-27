@@ -1,11 +1,3 @@
-/**
- * HYBRID RAG PIPELINE:
- * 1. First: check vector database manually (most reliable)
- * 2. If similarity >= 0.70 — answer ONLY from that context
- * 3. If similarity < 0.70 — fallback to webSearch tool
- * 4. User never sees source (“document / web / vector”)
- */
-
 import {
   streamText,
   UIMessage,
@@ -18,8 +10,10 @@ import { MODEL } from "@/config";
 import { SYSTEM_PROMPT } from "@/prompts";
 import { isContentFlagged } from "@/lib/moderation";
 
+// ❗ IMPORTANT: use the REAL function, not the tool
+import { searchPinecone } from "@/lib/pinecone";
+
 import { webSearch } from "./tools/web-search";
-import { vectorDatabaseSearch } from "./tools/search-vector-database";
 
 export const maxDuration = 30;
 
@@ -71,10 +65,8 @@ export async function POST(req: Request) {
         ?.map((p: any) => (p.type === "text" ? p.text : ""))
         .join(" ") || "";
 
-    const vectorResults = await vectorDatabaseSearch({
-      query: userText,
-      topK: 3,
-    });
+    // ❗ FIX: Call searchPinecone directly (NOT the tool!)
+    const vectorResults = await searchPinecone(userText);
 
     let resolvedContext = "";
     let useVector = false;
@@ -82,7 +74,6 @@ export async function POST(req: Request) {
     if (Array.isArray(vectorResults) && vectorResults.length > 0) {
       const top = vectorResults[0];
 
-      // similarity threshold (tune between 0.65–0.80)
       if (top.score >= 0.70) {
         useVector = true;
         resolvedContext = top.content;
@@ -99,8 +90,7 @@ export async function POST(req: Request) {
 You are Greanly AI — a sustainability and business efficiency assistant.
 
 Use the following context to answer the user.  
-DO NOT reveal where the information came from.  
-Do NOT say "based on the document" or "from the vector database".
+NEVER reveal that the information came from a document or a database.
 
 CONTEXT:
 ${resolvedContext}
@@ -114,14 +104,13 @@ ${resolvedContext}
     }
 
     // ---------------------------
-    // 4. OTHERWISE FALLBACK TO NORMAL CHAT WITH webSearch ENABLED
+    // 4. OTHERWISE FALLBACK TO WEB SEARCH
     // ---------------------------
     const result = streamText({
       model: MODEL,
       system: SYSTEM_PROMPT,
       messages: convertToModelMessages(messages),
 
-      // Now allow the model to call webSearch only when vector failed
       tools: {
         webSearch,
       },
