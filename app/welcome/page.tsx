@@ -2,7 +2,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useCallback } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -103,28 +102,10 @@ export default function WelcomePage() {
 
   return (
     <main className="welcome-hero min-h-screen w-full flex flex-col items-center justify-start p-4 relative overflow-hidden">
-      {/* Top header with theme toggle & signin */}
-      <header className="absolute top-4 left-0 right-0 z-40 flex items-center justify-between px-6">
-        <div className="flex items-center gap-4">
-          <div className="logo-small inline-flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/80 shadow-sm border border-emerald-50">
-              <Image src="/logo.png" alt="Greanly" width={36} height={36} />
-            </div>
-            <span className="font-semibold text-emerald-900">Greanly</span>
-          </div>
-        </div>
-
+      {/* Header: small top bar with theme toggle only */}
+      <header className="absolute top-4 left-0 right-0 z-40 flex items-center justify-end px-6">
         <div className="flex items-center gap-3">
-          <nav className="hidden md:flex items-center gap-4 text-sm text-slate-700">
-            <Link className="hover:underline" href="/about">About</Link>
-            <Link className="hover:underline" href="/pricing">Pricing</Link>
-            <Link className="hover:underline" href="/help">Help</Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <Link href="/signin" className="text-sm text-slate-700 hover:underline">Sign in</Link>
-          </div>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -172,14 +153,15 @@ export default function WelcomePage() {
         </svg>
 
         <div className="welcome-card-content">
-          <header className="welcome-top">
+          <header className="welcome-top w-full">
+            {/* top-left floating logo badge (option B) */}
             <div className="logo-top-left" aria-hidden>
               <div className="logo-badge">
                 <Image src="/logo.png" width={64} height={64} alt="Greanly" className="rounded-full" />
               </div>
             </div>
 
-            <div className="brand-header">
+            <div className="brand-header" style={{ width: "100%", textAlign: "center" }}>
               <h1 className="welcome-title">Greanly</h1>
               <p className="welcome-sub">
                 Make your business greener — practical, measurable steps that save money and reduce waste.
@@ -187,7 +169,7 @@ export default function WelcomePage() {
             </div>
           </header>
 
-          {/* primary features */}
+          {/* primary features: just the three boxes */}
           <section className="features-grid" aria-hidden>
             <div className="feature">
               <div className="feature-icon">✓</div>
@@ -208,26 +190,7 @@ export default function WelcomePage() {
             </div>
           </section>
 
-          {/* secondary row: quick stats + plan preview */}
-          <div className="secondary-row" aria-hidden>
-            <div className="stat">
-              <div className="stat-num">75%</div>
-              <div className="stat-label">Avg. waste reduction</div>
-            </div>
-            <div className="plan-preview">
-              <div className="plan-title">30/60/90 Plan</div>
-              <div className="plan-items">
-                <span>Phase 1 — Quick wins</span>
-                <span>Phase 2 — System changes</span>
-                <span>Phase 3 — Supplier shifts</span>
-              </div>
-            </div>
-            <div className="stat">
-              <div className="stat-num">2-4 weeks</div>
-              <div className="stat-label">to see impact</div>
-            </div>
-          </div>
-
+          {/* CTA visible and centered */}
           <div className="cta-row">
             <button onClick={handleGetStarted} className="get-started cta-btn" aria-label="Get Started">
               <svg className="w-5 h-5 -ml-1" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" fill="none" aria-hidden>
@@ -254,63 +217,37 @@ export default function WelcomePage() {
         </div>
       )}
 
+      {/* styles (including Playfair Display import for the title) */}
       <style jsx>{`
+        /* import display font for brand title */
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
+
         :root {
-          --bg-start: rgba(237,250,240,1);
-          --bg-end: rgba(245,252,248,1);
-          --card-bg: #ffffff;
-          --dark-bg: #071815;
-          --accent-1: #0D3B2A;
+          --accent-1: #0D3B2A; /* dark forest green (brand) */
           --accent-2: #14503B;
           --muted: rgba(16,32,26,0.6);
         }
 
-        /* page base */
         .welcome-hero {
-          background: linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+          background: linear-gradient(180deg, rgba(237,250,240,1) 0%, rgba(245,252,248,1) 100%);
           min-height: 100vh;
         }
 
-        /* header */
+        /* header placement */
         header { max-width: 1400px; margin: 0 auto; }
-        .logo-small { color: var(--accent-1); font-weight: 700; }
-        .logo-small img { display:block; }
 
-        /* subtle background shapes */
+        /* background shapes */
         .bg-circle { position: absolute; border-radius: 9999px; transform: translateZ(0); pointer-events: none; }
         .bg-circle.left { left: -240px; top: -160px; width: 880px; height: 880px; background: linear-gradient(135deg, rgba(223,246,230,1), rgba(201,240,209,0.96)); filter: blur(90px); opacity: 0.6; }
         .bg-circle.right { right: -180px; bottom: -220px; width: 720px; height: 720px; background: linear-gradient(135deg, rgba(240,255,246,1), rgba(217,247,228,0.96)); filter: blur(72px); opacity: 0.52; }
 
-        /* subtle dotted pattern */
-        .pattern-dots {
-          position: absolute;
-          inset: 0;
-          background-image: radial-gradient(circle at 10% 20%, rgba(13,59,42,0.02) 1px, transparent 1px);
-          background-size: 26px 26px;
-          opacity: 0.28;
-          mask-image: radial-gradient(transparent 0 6%, black 40%);
-          pointer-events: none;
-          z-index: -28;
-        }
+        .pattern-dots { position: absolute; inset: 0; background-image: radial-gradient(circle at 10% 20%, rgba(13,59,42,0.02) 1px, transparent 1px); background-size: 26px 26px; opacity: 0.28; mask-image: radial-gradient(transparent 0 6%, black 40%); pointer-events: none; z-index: -28; }
+        .floating-orb { position: absolute; left: 10%; bottom: 4%; width: 200px; height: 200px; border-radius: 9999px; background: radial-gradient(circle at center, rgba(174,240,199,0.18), rgba(174,240,199,0.06)); filter: blur(36px); z-index: -27; }
 
-        .floating-orb {
-          position: absolute;
-          left: 10%;
-          bottom: 4%;
-          width: 200px;
-          height: 200px;
-          border-radius: 9999px;
-          background: radial-gradient(circle at center, rgba(174,240,199,0.18), rgba(174,240,199,0.06));
-          filter: blur(36px);
-          z-index: -27;
-        }
-
-        /* decorative svgs */
         .decor-left, .decor-right { position: absolute; z-index: 8; pointer-events: none; opacity: 0.98; filter: drop-shadow(0 20px 40px rgba(13,59,42,0.04)); }
         .decor-left { left: -6%; top: 6%; width: 36vw; max-width: 560px; transform: translateX(-6%); }
         .decor-right { right: -4%; bottom: -2%; width: 42vw; max-width: 640px; transform: translateX(6%); }
 
-        /* card wrapper and blob */
         .welcome-card-wrapper { display:flex; justify-content:center; width:100%; pointer-events: auto; }
         .card-blob { position: absolute; width: 110%; height: auto; left: -5%; top: 8px; z-index: 6; opacity: 0.99; filter: drop-shadow(0 40px 92px rgba(13,59,42,0.08)); }
 
@@ -327,33 +264,33 @@ export default function WelcomePage() {
           pointer-events: auto;
         }
 
-        /* logo badge */
+        /* logo top-left floating badge */
         .logo-top-left { position:absolute; left:44px; top:-28px; z-index: 22; width:78px; height:78px; border-radius:999px; background: linear-gradient(180deg, rgba(237,250,240,1), rgba(217,239,224,0.94)); box-shadow: 0 18px 44px rgba(13,59,42,0.06); display:flex; align-items:center; justify-content:center; padding:6px; }
         .logo-top-left img { border-radius:999px; display:block; }
 
-        /* heading */
-        .welcome-title { font-size:48px; font-weight:900; margin:0; color: var(--accent-1); letter-spacing:-0.6px; }
-        .welcome-sub  { margin:0; margin-top:10px; color: var(--muted); max-width:880px; font-size:16px; line-height:1.6; }
+        /* fancy brand title */
+        .welcome-title {
+          font-family: 'Playfair Display', serif;
+          font-weight: 900;
+          font-size: 48px;
+          margin: 0;
+          color: var(--accent-1); /* dark green for light mode */
+          letter-spacing: -0.6px;
+          line-height: 1;
+        }
 
-        /* primary features */
-        .features-grid { margin-top:6px; width:100%; display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; align-items:stretch; }
+        .welcome-sub { margin: 0; margin-top: 10px; color: var(--muted); max-width:880px; font-size:16px; line-height:1.6; }
+
+        /* features */
+        .features-grid { margin-top: 8px; width:100%; display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; align-items:stretch; }
         .feature { background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:8px; align-items:center; border:1px solid rgba(13,59,42,0.035); box-shadow:0 10px 36px rgba(13,59,42,0.03); }
+        .feature:hover { transform: translateY(-6px); transition: transform 180ms ease, box-shadow 180ms ease; box-shadow: 0 18px 40px rgba(13,59,42,0.06); }
         .feature-icon { width:56px; height:56px; border-radius:999px; display:grid; place-items:center; font-size:18px; color:var(--accent-1); background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.55); }
         .feature-title { font-weight:800; color: var(--accent-2); }
         .feature-sub { font-size:13px; color: rgba(16,32,26,0.56); }
 
-        /* secondary row */
-        .secondary-row { margin-top:18px; width:100%; display:flex; gap:18px; justify-content:space-between; align-items:center; }
-        .stat { flex:1; background:transparent; display:flex; flex-direction:column; gap:6px; align-items:center; }
-        .stat-num { font-size:20px; font-weight:900; color:var(--accent-2); }
-        .stat-label { font-size:13px; color:rgba(16,32,26,0.6); }
-
-        .plan-preview { flex:2; display:flex; flex-direction:column; gap:8px; padding:12px 16px; border-radius:10px; background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border:1px solid rgba(13,59,42,0.03); box-shadow: 0 8px 20px rgba(13,59,42,0.02); }
-        .plan-title { font-weight:800; color:var(--accent-1); }
-        .plan-items { display:flex; gap:10px; color: rgba(16,32,26,0.6); font-size:13px; justify-content:center; flex-wrap:wrap; }
-
         /* CTA */
-        .cta-row { margin-top: 14px; display:flex; justify-content:center; width:100%; }
+        .cta-row { margin-top: 18px; display:flex; justify-content:center; width:100%; }
         .cta-btn { display:inline-flex; align-items:center; gap:12px; padding:12px 32px; border-radius:999px; background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color:#fff; font-weight:800; box-shadow:0 20px 56px rgba(13,59,42,0.12); border:none; cursor:pointer; transition: transform 180ms ease, box-shadow 180ms ease; }
         .cta-btn:hover { transform: translateY(-4px); box-shadow: 0 36px 92px rgba(13,59,42,0.18); }
 
@@ -379,30 +316,25 @@ export default function WelcomePage() {
           .decor-left, .decor-right { display:none; }
           .welcome-card-content { padding: 34px 22px; }
           .features-grid { grid-template-columns: 1fr; gap:14px; }
-          .secondary-row { flex-direction: column; gap:12px; align-items:stretch; }
-          header nav { display:none; }
+          .logo-top-left { left: 22px; top: -8px; }
         }
 
         @media (max-width: 640px) {
           .welcome-title { font-size:28px; }
           .logo-top-left { display:none; }
-          .plan-items { font-size:12px; gap:6px; }
           .cta-btn { padding: 12px 18px; width:100%; justify-content:center; }
         }
 
-        /* Dark theme overrides (works if .dark is applied to html/body by next-themes) */
+        /* Dark theme overrides (applies when .dark is present on html/body) */
         :global(.dark) .welcome-hero {
-          --bg-start: rgba(7,24,21,0.9);
-          --bg-end: rgba(6,20,18,0.95);
-          background: linear-gradient(180deg, var(--bg-start), var(--bg-end));
+          background: linear-gradient(180deg, rgba(7,24,21,0.9), rgba(6,20,18,0.95));
         }
-        :global(.dark) .pattern-dots { opacity: 0.06; background-image: radial-gradient(circle at 10% 20%, rgba(255,255,255,0.02) 1px, transparent 1px); }
-        :global(.dark) .card-blob path { fill: #071815; }
-        :global(.dark) .welcome-card-content { color: #E7F5EE; }
+        :global(.dark) .welcome-title {
+          color: #E7F5EE; /* lighter title color in dark mode */
+        }
         :global(.dark) .feature { background: linear-gradient(180deg, rgba(8,36,30,0.48), rgba(6,28,24,0.42)); border:1px solid rgba(255,255,255,0.03); box-shadow:none; }
         :global(.dark) .feature-title, :global(.dark) .feature-icon { color: #DFF6E6; }
-        :global(.dark) .feature-sub, :global(.dark) .welcome-sub, :global(.dark) .stat-label { color: rgba(231,245,238,0.82); }
-        :global(.dark) .cta-btn { background: linear-gradient(135deg, #0B3A2A, #124632); box-shadow: 0 18px 48px rgba(0,0,0,0.32); }
+        :global(.dark) .feature-sub, :global(.dark) .welcome-sub { color: rgba(231,245,238,0.82); }
       `}</style>
     </main>
   );
