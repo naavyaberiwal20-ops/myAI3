@@ -2,16 +2,60 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 
 export default function WelcomePage() {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [leavesActive, setLeavesActive] = useState(false);
+  const fadeIntervalRef = useRef<number | null>(null);
 
   // milliseconds to wait before navigation so audio plays a little
-  const AUDIO_PLAY_MS = 5500;
-  const LEAVES_DURATION_MS = 1200;
+  const AUDIO_PLAY_MS = 3000; // reduced to 3 seconds
+  const LEAVES_DURATION_MS = 1400; // how long leaves run (ms)
+
+  const clearFadeInterval = () => {
+    if (fadeIntervalRef.current) {
+      window.clearInterval(fadeIntervalRef.current);
+      fadeIntervalRef.current = null;
+    }
+  };
+
+  const fadeOutAudio = useCallback((duration = 600) => {
+    // smooth fade-out over `duration` ms, then pause + reset
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    try {
+      const startVol = Math.max(0, Math.min(1, audio.volume));
+      const steps = Math.max(4, Math.ceil(duration / 50));
+      let step = 0;
+      clearFadeInterval();
+
+      fadeIntervalRef.current = window.setInterval(() => {
+        step++;
+        const fraction = step / steps;
+        const newVol = Math.max(0, startVol * (1 - fraction));
+        audio.volume = Number(newVol.toFixed(3));
+        if (step >= steps) {
+          clearFadeInterval();
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.volume = startVol; // restore nominal volume for next play
+            audio.loop = false;
+          } catch {}
+        }
+      }, Math.round(duration / steps));
+    } catch {
+      // ignore fade errors, just stop abruptly as fallback
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {}
+      clearFadeInterval();
+    }
+  }, []);
 
   const handleGetStarted = async () => {
     // try to play audio on user click (browsers permit play on gesture)
@@ -30,21 +74,38 @@ export default function WelcomePage() {
     // show falling leaves
     setLeavesActive(true);
 
+    // hide leaves after LEAVES_DURATION_MS (so they don't persist forever)
+    window.setTimeout(() => {
+      setLeavesActive(false);
+    }, LEAVES_DURATION_MS + 400);
+
     // wait for the requested audio duration (short) then navigate
-    setTimeout(() => {
-      // optional: stop audio before navigating to avoid abrupt behavior on some devices
+    window.setTimeout(() => {
+      // fade out audio smoothly, then navigate when done
       try {
         if (audioRef.current) {
-          audioRef.current.pause();
+          // fade-out duration 600ms (adjustable)
+          fadeOutAudio(600);
         }
       } catch {}
-      router.push("/chat");
+
+      // navigate shortly after fade-out starts (so UX feels immediate).
+      // use a slight delay to avoid cutting the fade before it completes
+      window.setTimeout(() => {
+        router.push("/chat");
+      }, 700);
     }, AUDIO_PLAY_MS);
   };
 
   // render a few leaves (emoji used for simplicity)
   const leaves = Array.from({ length: 14 }).map((_, i) => (
-    <span key={i} className="leaf" style={{ ['--i' as any]: i }}>
+    <span
+      key={i}
+      className="leaf"
+      // set CSS custom property so `left` calc works
+      style={{ ['--i' as any]: i }}
+      aria-hidden
+    >
       🍃
     </span>
   ));
@@ -120,10 +181,12 @@ export default function WelcomePage() {
       {/* audio (will be triggered by the click) */}
       <audio ref={audioRef} src="/ambient-forest.mp3" preload="auto" />
 
-      {/* leaves overlay */}
-      <div className={`leaves-overlay ${leavesActive ? "active" : ""}`} aria-hidden>
-        {leaves}
-      </div>
+      {/* leaves overlay — render only when active to avoid stray emojis before CSS loads */}
+      {leavesActive && (
+        <div className={`leaves-overlay active`} aria-hidden>
+          {leaves}
+        </div>
+      )}
 
       <style jsx>{`
         .get-started:hover {
@@ -137,26 +200,50 @@ export default function WelcomePage() {
         @keyframes lift { from { transform: translateY(14px) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
 
         /* leaves overlay */
-        .leaves-overlay { pointer-events: none; position: fixed; inset: 0; z-index: 60; overflow: hidden; display:none; }
-        .leaves-overlay.active { display:block; }
+        .leaves-overlay { pointer-events: none; position: fixed; inset: 0; z-index: 60; overflow: hidden; display:block; animation: overlayFade 320ms ease both; }
+        @keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
 
         .leaves-overlay .leaf {
           position:absolute;
           top:-10%;
           left:calc(var(--i) * 7%);
           font-size: 22px;
-          transform: translateY(-8vh) rotate(0deg);
+          transform: translateY(-8vh) rotate(0deg) scale(0.9);
           opacity:0;
-          animation: leafFall 1200ms linear forwards;
+          /* main fall animation includes gentle easing and opacity crossfade */
+          animation: leafFall 1200ms cubic-bezier(.12,.78,.32,1) forwards;
           animation-delay: calc(var(--i) * 45ms);
           filter: drop-shadow(0 6px 8px rgba(8,20,12,0.06));
         }
+
+        /* add a subtle staggered pop-in before the fall for smoother entrance */
+        .leaves-overlay .leaf::before {
+          content: "";
+          display: block;
+        }
+
         .leaves-overlay .leaf:nth-child(3n) { font-size:24px; }
         .leaves-overlay .leaf:nth-child(4n) { font-size:18px; }
+
         @keyframes leafFall {
-          0% { opacity:0; transform: translateY(-8vh) translateX(0) rotate(-5deg) scale(1); }
-          30% { opacity:1; }
-          100% { opacity:0.95; transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.95); }
+          0% {
+            opacity: 0;
+            transform: translateY(-8vh) translateX(0) rotate(-5deg) scale(0.82);
+            filter: drop-shadow(0 2px 6px rgba(8,20,12,0.04));
+          }
+          12% {
+            opacity: 0.9;
+            transform: translateY(6vh) translateX(2vw) rotate(6deg) scale(1.03);
+          }
+          60% {
+            opacity: 1;
+            transform: translateY(60vh) translateX(8vw) rotate(180deg) scale(0.98);
+          }
+          100% {
+            opacity: 0.0;
+            transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.95);
+            filter: drop-shadow(0 10px 18px rgba(8,20,12,0.06));
+          }
         }
 
         @media (max-width: 640px) {
