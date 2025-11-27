@@ -358,41 +358,59 @@ export default function WelcomePage() {
           .welcome-title { font-size:28px; }
         }
 
-        /* Dark mode: keep dark background but make ALL text inside the white blob emerald (#145a32) */
+        /* keep dark background when theme is dark */
         :global(.dark) .welcome-hero {
           background: linear-gradient(180deg, rgba(6,20,18,0.95), rgba(4,14,12,0.98));
         }
 
-        /* only override text/colors INSIDE the white blob */
-        :global(.dark) .welcome-card-content * {
+        /* === NEW: force ALL text INSIDE the white blob to emerald green (#145a32)
+           This affects title, subtitle, feature titles/subs, CTA label/arrow, footer, etc.
+           It intentionally does not change box backgrounds, icon-circle backgrounds, or CTA background. */
+        .welcome-card-content * {
           color: #145a32 !important;
           fill: #145a32 !important;
           stroke: #145a32 !important;
         }
 
         /* keep feature cards and icon circles visually identical to light mode (background, shadows) */
-        :global(.dark) .feature {
-          background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)) !important;
-          border: 1px solid rgba(13,59,42,0.035) !important;
-          box-shadow: 0 10px 36px rgba(13,59,42,0.03) !important;
+        .feature {
+          background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92));
+          border-radius:14px;
+          padding:18px;
+          display:flex;
+          flex-direction:column;
+          gap:8px;
+          align-items:center;
+          border:1px solid rgba(13,59,42,0.035);
+          box-shadow:0 10px 36px rgba(13,59,42,0.03);
+          transition: transform 180ms ease, box-shadow 180ms ease;
+          color: inherit;
         }
 
-        :global(.dark) .feature-icon {
-          background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9)) !important;
+        .feature-icon {
+          width:56px;
+          height:56px;
+          border-radius:999px;
+          display:grid;
+          place-items:center;
+          font-size:18px;
+          color:var(--accent-1);
+          background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9));
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
         }
 
-        /* keep CTA visuals as before, but the label/arrow will now inherit emerald from the rule above */
-        :global(.dark) .cta-btn {
-          background: var(--btn-bg) !important;
+        /* keep CTA visuals as before (background + glow) */
+        .cta-btn {
+          background: var(--btn-bg);
           box-shadow:
-            0 18px 40px rgba(4,10,6,0.45) !important,
-            0 8px 34px rgba(3,18,12,0.16) !important,
-            0 0 40px var(--btn-glow) !important;
-          z-index: 999 !important;
+            0 18px 40px rgba(4,10,6,0.45),
+            0 8px 34px rgba(3,18,12,0.16),
+            0 0 40px var(--btn-glow);
+          z-index: 999;
         }
 
         /* ensure SVG strokes/fills that use currentColor follow the emerald override */
-        :global(.dark) .welcome-card-content svg {
+        .welcome-card-content svg {
           color: inherit !important;
           stroke: currentColor !important;
           fill: currentColor !important;
