@@ -159,7 +159,12 @@ export default function ChatPage() {
           </div>
 
           <div className="sidebar-actions">
-            <button className="btn primary" onClick={newChat}><Plus size={14} /> <span>New Chat</span></button>
+            {/* NEW CHAT: moved here and styled to be clearly visible (not blank) */}
+            <button className="btn new-left" onClick={newChat} aria-label="New Chat">
+              <Plus size={14} /> <span>New Chat</span>
+            </button>
+
+            {/* 30/60/90 plan */}
             <button className="btn ghost" onClick={insertPlanPrompt}><Archive size={14} /> <span>30/60/90 plan</span></button>
           </div>
 
@@ -282,6 +287,8 @@ export default function ChatPage() {
 
         .sidebar-actions { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
         .btn { display:inline-flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:700; border:1px solid rgba(13,59,42,0.04); }
+        /* NEW (left) style - visible and contrasted on light/dark */
+        .btn.new-left { background: linear-gradient(180deg,#fff,#F6FFF6); color: var(--accent); border: 1px solid rgba(13,59,42,0.08); box-shadow: 0 8px 20px rgba(13,59,42,0.03); }
         .btn.primary { background: linear-gradient(135deg,var(--accent),var(--accent-2)); color:white; box-shadow: 0 12px 36px rgba(13,59,42,0.12); }
         .btn.ghost { background: #fff; color: var(--accent); }
 
@@ -342,6 +349,7 @@ export default function ChatPage() {
         :global(.dark) .sidebar { background: linear-gradient(180deg,#071815, #071E18); border-color: rgba(255,255,255,0.04); box-shadow: 0 18px 40px rgba(0,0,0,0.6); }
         :global(.dark) .brand-title, :global(.dark) .history-title, :global(.dark) .title { color: #CFEFE0; }
         :global(.dark) .brand-sub, :global(.dark) .history-meta, :global(.dark) .subtitle, :global(.dark) .sidebar-footer { color: rgba(255,255,255,0.64); }
+        :global(.dark) .btn.new-left { background: linear-gradient(180deg,#072518,#073826); color:#DFF6E6; border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
         :global(.dark) .btn.primary { box-shadow: 0 10px 36px rgba(0,0,0,0.6); background: linear-gradient(135deg,#0B2B22,#0F3A2E); }
         :global(.dark) .chat-card { background: linear-gradient(180deg,#061612,#04120F); border-color: rgba(255,255,255,0.03); box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
         :global(.dark) .composer-input { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.04); color: #E6F6EE; }
