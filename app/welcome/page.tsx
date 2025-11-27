@@ -103,14 +103,14 @@ export default function WelcomePage() {
   return (
     <main className="welcome-hero min-h-screen w-full flex flex-col items-center justify-start p-4 relative overflow-hidden">
       {/* Header: small top bar with theme toggle only */}
-      <header className="absolute top-4 left-0 right-0 z-40 flex items-center justify-end px-6">
+      <header className="absolute top-4 left-0 right-0 z-50 flex items-center justify-end px-6">
         <div className="flex items-center gap-3">
           <ThemeToggle />
         </div>
       </header>
 
       {/* Background blobs and subtle pattern */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-30">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-40">
         <div className="bg-circle left" />
         <div className="bg-circle right" />
         <div className="pattern-dots" />
@@ -141,7 +141,7 @@ export default function WelcomePage() {
       </svg>
 
       {/* main card with organic blob */}
-      <div className="welcome-card-wrapper z-20 mt-20 w-full flex justify-center">
+      <div className="welcome-card-wrapper z-30 mt-20 w-full flex justify-center">
         <svg className="card-blob" viewBox="0 0 1000 620" preserveAspectRatio="none" aria-hidden>
           <defs>
             <filter id="softShadow2" x="-40%" y="-40%" width="180%" height="180%">
@@ -152,7 +152,7 @@ export default function WelcomePage() {
             fill="#FFFFFF" filter="url(#softShadow2)"/>
         </svg>
 
-        <div className="welcome-card-content">
+        <div className="welcome-card-content" role="region" aria-label="Welcome card content">
           <header className="welcome-top w-full">
             {/* top-left floating logo badge (option B) */}
             <div className="logo-top-left" aria-hidden>
@@ -172,19 +172,19 @@ export default function WelcomePage() {
           {/* primary features: just the three boxes */}
           <section className="features-grid" aria-hidden>
             <div className="feature">
-              <div className="feature-icon">✓</div>
+              <div className="feature-icon" aria-hidden>✓</div>
               <div className="feature-title">Cut costs & waste</div>
               <div className="feature-sub">Practical steps you can use now</div>
             </div>
 
             <div className="feature">
-              <div className="feature-icon">🔍</div>
+              <div className="feature-icon" aria-hidden>🔍</div>
               <div className="feature-title">Find better suppliers</div>
               <div className="feature-sub">Sustainable materials & vendors</div>
             </div>
 
             <div className="feature">
-              <div className="feature-icon">⚙️</div>
+              <div className="feature-icon" aria-hidden>⚙️</div>
               <div className="feature-title">Action plans (30/60/90)</div>
               <div className="feature-sub">Simple prioritized next steps</div>
             </div>
@@ -241,31 +241,32 @@ export default function WelcomePage() {
         .bg-circle.left { left: -240px; top: -160px; width: 880px; height: 880px; background: linear-gradient(135deg, rgba(223,246,230,1), rgba(201,240,209,0.96)); filter: blur(90px); opacity: 0.6; }
         .bg-circle.right { right: -180px; bottom: -220px; width: 720px; height: 720px; background: linear-gradient(135deg, rgba(240,255,246,1), rgba(217,247,228,0.96)); filter: blur(72px); opacity: 0.52; }
 
-        .pattern-dots { position: absolute; inset: 0; background-image: radial-gradient(circle at 10% 20%, rgba(13,59,42,0.02) 1px, transparent 1px); background-size: 26px 26px; opacity: 0.28; mask-image: radial-gradient(transparent 0 6%, black 40%); pointer-events: none; z-index: -28; }
-        .floating-orb { position: absolute; left: 10%; bottom: 4%; width: 200px; height: 200px; border-radius: 9999px; background: radial-gradient(circle at center, rgba(174,240,199,0.18), rgba(174,240,199,0.06)); filter: blur(36px); z-index: -27; }
+        .pattern-dots { position: absolute; inset: 0; background-image: radial-gradient(circle at 10% 20%, rgba(13,59,42,0.02) 1px, transparent 1px); background-size: 26px 26px; opacity: 0.25; mask-image: radial-gradient(transparent 0 6%, black 40%); pointer-events: none; z-index: -38; }
+        .floating-orb { position: absolute; left: 10%; bottom: 4%; width: 200px; height: 200px; border-radius: 9999px; background: radial-gradient(circle at center, rgba(174,240,199,0.18), rgba(174,240,199,0.06)); filter: blur(36px); z-index: -37; }
 
         .decor-left, .decor-right { position: absolute; z-index: 8; pointer-events: none; opacity: 0.98; filter: drop-shadow(0 20px 40px rgba(13,59,42,0.04)); }
         .decor-left { left: -6%; top: 6%; width: 36vw; max-width: 560px; transform: translateX(-6%); }
         .decor-right { right: -4%; bottom: -2%; width: 42vw; max-width: 640px; transform: translateX(6%); }
 
         .welcome-card-wrapper { display:flex; justify-content:center; width:100%; pointer-events: auto; }
-        .card-blob { position: absolute; width: 110%; height: auto; left: -5%; top: 8px; z-index: 6; opacity: 0.99; filter: drop-shadow(0 40px 92px rgba(13,59,42,0.08)); }
+        .card-blob { position: absolute; width: 110%; height: auto; left: -5%; top: 8px; z-index: 6; opacity: 0.99; filter: drop-shadow(0 40px 92px rgba(13,59,42,0.08)); pointer-events: none; }
 
         .welcome-card-content {
-          position: relative; z-index: 20;
+          position: relative; z-index: 40;
           width: min(1100px, 92%);
           margin: 36px 0;
-          padding: 48px 56px;
+          padding: 56px 64px 72px; /* more bottom padding so CTA is firmly inside blob */
           display:flex;
           flex-direction:column;
           gap:18px;
           align-items:center;
           text-align:center;
           pointer-events: auto;
+          min-height: 420px; /* ensure enough vertical space so CTA doesn't fall outside */
         }
 
         /* logo top-left floating badge */
-        .logo-top-left { position:absolute; left:44px; top:-28px; z-index: 22; width:78px; height:78px; border-radius:999px; background: linear-gradient(180deg, rgba(237,250,240,1), rgba(217,239,224,0.94)); box-shadow: 0 18px 44px rgba(13,59,42,0.06); display:flex; align-items:center; justify-content:center; padding:6px; }
+        .logo-top-left { position:absolute; left:44px; top:-28px; z-index: 42; width:78px; height:78px; border-radius:999px; background: linear-gradient(180deg, rgba(237,250,240,1), rgba(217,239,224,0.94)); box-shadow: 0 18px 44px rgba(13,59,42,0.06); display:flex; align-items:center; justify-content:center; padding:6px; }
         .logo-top-left img { border-radius:999px; display:block; }
 
         /* fancy brand title */
@@ -277,24 +278,41 @@ export default function WelcomePage() {
           color: var(--accent-1); /* dark green for light mode */
           letter-spacing: -0.6px;
           line-height: 1;
+          opacity: 1;
         }
 
-        .welcome-sub { margin: 0; margin-top: 10px; color: var(--muted); max-width:880px; font-size:16px; line-height:1.6; }
+        .welcome-sub { margin: 0; margin-top: 10px; color: var(--muted); max-width:880px; font-size:16px; line-height:1.6; opacity: 1; }
 
         /* features */
         .features-grid { margin-top: 8px; width:100%; display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; align-items:stretch; }
-        .feature { background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:8px; align-items:center; border:1px solid rgba(13,59,42,0.035); box-shadow:0 10px 36px rgba(13,59,42,0.03); }
-        .feature:hover { transform: translateY(-6px); transition: transform 180ms ease, box-shadow 180ms ease; box-shadow: 0 18px 40px rgba(13,59,42,0.06); }
+        .feature { background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:8px; align-items:center; border:1px solid rgba(13,59,42,0.035); box-shadow:0 10px 36px rgba(13,59,42,0.03); transition: transform 180ms ease, box-shadow 180ms ease; }
+        .feature:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(13,59,42,0.06); }
         .feature-icon { width:56px; height:56px; border-radius:999px; display:grid; place-items:center; font-size:18px; color:var(--accent-1); background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.55); }
         .feature-title { font-weight:800; color: var(--accent-2); }
         .feature-sub { font-size:13px; color: rgba(16,32,26,0.56); }
 
-        /* CTA */
+        /* CTA - force prominence and layering */
         .cta-row { margin-top: 18px; display:flex; justify-content:center; width:100%; }
-        .cta-btn { display:inline-flex; align-items:center; gap:12px; padding:12px 32px; border-radius:999px; background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color:#fff; font-weight:800; box-shadow:0 20px 56px rgba(13,59,42,0.12); border:none; cursor:pointer; transition: transform 180ms ease, box-shadow 180ms ease; }
-        .cta-btn:hover { transform: translateY(-4px); box-shadow: 0 36px 92px rgba(13,59,42,0.18); }
+        .cta-btn {
+          display:inline-flex;
+          align-items:center;
+          gap:12px;
+          padding:14px 36px;
+          border-radius:999px;
+          background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+          color:#fff;
+          font-weight:800;
+          box-shadow:0 26px 64px rgba(13,59,42,0.18);
+          border:none;
+          cursor:pointer;
+          transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms;
+          position: relative;
+          z-index: 45; /* ensure above SVG blob & everything */
+        }
+        .cta-btn:hover { transform: translateY(-4px); box-shadow: 0 36px 92px rgba(13,59,42,0.22); }
+        .cta-btn:active { transform: translateY(-2px); }
 
-        .welcome-foot { margin-top:12px; color: rgba(16,32,26,0.5); font-size:13px; }
+        .welcome-foot { margin-top:20px; color: rgba(16,32,26,0.5); font-size:13px; }
 
         /* leaves overlay */
         .leaves-overlay { pointer-events:none; position: fixed; inset: 0; z-index: 60; overflow: hidden; display:block; opacity:0; transition: opacity 260ms ease; }
@@ -314,7 +332,7 @@ export default function WelcomePage() {
         /* responsive */
         @media (max-width: 1100px) {
           .decor-left, .decor-right { display:none; }
-          .welcome-card-content { padding: 34px 22px; }
+          .welcome-card-content { padding: 34px 22px 46px; min-height: auto; }
           .features-grid { grid-template-columns: 1fr; gap:14px; }
           .logo-top-left { left: 22px; top: -8px; }
         }
@@ -327,14 +345,27 @@ export default function WelcomePage() {
 
         /* Dark theme overrides (applies when .dark is present on html/body) */
         :global(.dark) .welcome-hero {
-          background: linear-gradient(180deg, rgba(7,24,21,0.9), rgba(6,20,18,0.95));
+          background: linear-gradient(180deg, rgba(6,20,18,0.95), rgba(4,14,12,0.98));
         }
         :global(.dark) .welcome-title {
-          color: #E7F5EE; /* lighter title color in dark mode */
+          color: #DFF6E6; /* keep title visible and brand-like in dark mode */
+          opacity: 1;
         }
-        :global(.dark) .feature { background: linear-gradient(180deg, rgba(8,36,30,0.48), rgba(6,28,24,0.42)); border:1px solid rgba(255,255,255,0.03); box-shadow:none; }
+        :global(.dark) .welcome-sub { color: rgba(223,246,230,0.88); opacity: 1; }
+        :global(.dark) .feature {
+          background: linear-gradient(180deg, rgba(10,36,30,0.48), rgba(6,28,24,0.42));
+          border: 1px solid rgba(255,255,255,0.04);
+          box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+        }
         :global(.dark) .feature-title, :global(.dark) .feature-icon { color: #DFF6E6; }
-        :global(.dark) .feature-sub, :global(.dark) .welcome-sub { color: rgba(231,245,238,0.82); }
+        :global(.dark) .feature-sub { color: rgba(223,246,230,0.7); }
+
+        /* Ensure CTA is still highly visible in dark mode */
+        :global(.dark) .cta-btn {
+          background: linear-gradient(135deg, #0B2B22, #14503B);
+          box-shadow: 0 28px 76px rgba(0,0,0,0.55);
+          color: #E7F5EE;
+        }
       `}</style>
     </main>
   );
