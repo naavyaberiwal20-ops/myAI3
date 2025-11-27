@@ -29,5 +29,5 @@ export async function searchPinecone(
     const chunks = searchResultsToChunks(results);
     const sources = getSourcesFromChunks(chunks);
     const context = getContextFromSources(sources);
-    return < results > ${context} </results>;
+    return `< results > ${context} </results>`;
 }
