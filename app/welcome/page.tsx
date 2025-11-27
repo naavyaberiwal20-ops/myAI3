@@ -7,12 +7,15 @@ import { useRef, useState, useCallback } from "react";
 export default function WelcomePage() {
   const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [leavesActive, setLeavesActive] = useState(false);
   const fadeIntervalRef = useRef<number | null>(null);
 
-  // milliseconds to wait before navigation so audio plays a little
-  const AUDIO_PLAY_MS = 3000; // reduced to 3 seconds
-  const LEAVES_DURATION_MS = 1400; // how long leaves run (ms)
+  // timings (ms)
+  const AUDIO_PLAY_MS = 3000; // play 3 seconds
+  const LEAVES_DURATION_MS = 1400; // how long leaf fall animation lasts
+  const LEAVES_SHOW_DELAY = 120; // slight delay before showing leaves after click
+
+  const [leavesActive, setLeavesActive] = useState(false);
+  const [leavesMounted, setLeavesMounted] = useState(false);
 
   const clearFadeInterval = () => {
     if (fadeIntervalRef.current) {
@@ -22,12 +25,11 @@ export default function WelcomePage() {
   };
 
   const fadeOutAudio = useCallback((duration = 600) => {
-    // smooth fade-out over `duration` ms, then pause + reset
     const audio = audioRef.current;
     if (!audio) return;
 
     try {
-      const startVol = Math.max(0, Math.min(1, audio.volume));
+      const startVol = Math.max(0, Math.min(1, audio.volume || 0.36));
       const steps = Math.max(4, Math.ceil(duration / 50));
       let step = 0;
       clearFadeInterval();
@@ -48,7 +50,6 @@ export default function WelcomePage() {
         }
       }, Math.round(duration / steps));
     } catch {
-      // ignore fade errors, just stop abruptly as fallback
       try {
         audio.pause();
         audio.currentTime = 0;
@@ -58,56 +59,48 @@ export default function WelcomePage() {
   }, []);
 
   const handleGetStarted = async () => {
-    // try to play audio on user click (browsers permit play on gesture)
+    // play audio on gesture
     try {
       if (audioRef.current) {
         audioRef.current.volume = 0.36;
-        // ensure loop while we play the snippet
         audioRef.current.loop = true;
         await audioRef.current.play();
       }
-    } catch (e) {
-      // ignore; continue to animation/navigation flow
-      // console.warn("audio play failed", e);
+    } catch {
+      // ignore
     }
 
-    // show falling leaves
-    setLeavesActive(true);
+    // mount leaves container first (so CSS + DOM exist), then activate with small delay
+    setLeavesMounted(true);
+    window.setTimeout(() => setLeavesActive(true), LEAVES_SHOW_DELAY);
 
-    // hide leaves after LEAVES_DURATION_MS (so they don't persist forever)
+    // hide leaves after their duration to keep UI clean
     window.setTimeout(() => {
       setLeavesActive(false);
-    }, LEAVES_DURATION_MS + 400);
+      // unmount after animation ends
+      window.setTimeout(() => setLeavesMounted(false), 400);
+    }, LEAVES_DURATION_MS + 300);
 
-    // wait for the requested audio duration (short) then navigate
+    // wait for audio snippet, then fade out and navigate
     window.setTimeout(() => {
-      // fade out audio smoothly, then navigate when done
       try {
-        if (audioRef.current) {
-          // fade-out duration 600ms (adjustable)
-          fadeOutAudio(600);
-        }
+        if (audioRef.current) fadeOutAudio(600);
       } catch {}
-
-      // navigate shortly after fade-out starts (so UX feels immediate).
-      // use a slight delay to avoid cutting the fade before it completes
+      // navigate shortly after fade-out begins (ensures fade plays)
       window.setTimeout(() => {
         router.push("/chat");
       }, 700);
     }, AUDIO_PLAY_MS);
   };
 
-  // render a few leaves (emoji used for simplicity)
+  // render empty leaf spans (no emoji content)
   const leaves = Array.from({ length: 14 }).map((_, i) => (
     <span
       key={i}
       className="leaf"
-      // set CSS custom property so `left` calc works
       style={{ ['--i' as any]: i }}
       aria-hidden
-    >
-      🍃
-    </span>
+    />
   ));
 
   return (
@@ -137,7 +130,7 @@ export default function WelcomePage() {
             </div>
           </div>
 
-          {/* improved hero text */}
+          {/* hero */}
           <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 leading-tight">Greanly</h1>
           <p className="max-w-2xl text-neutral-700 text-base md:text-lg">
             Make your business greener — practical, measurable steps that save money and reduce waste.
@@ -181,9 +174,9 @@ export default function WelcomePage() {
       {/* audio (will be triggered by the click) */}
       <audio ref={audioRef} src="/ambient-forest.mp3" preload="auto" />
 
-      {/* leaves overlay — render only when active to avoid stray emojis before CSS loads */}
-      {leavesActive && (
-        <div className={`leaves-overlay active`} aria-hidden>
+      {/* leaves overlay: mounted only when needed to avoid any initial paint issues */}
+      {leavesMounted && (
+        <div className={`leaves-overlay ${leavesActive ? "active" : ""}`} aria-hidden>
           {leaves}
         </div>
       )}
@@ -199,55 +192,86 @@ export default function WelcomePage() {
         @keyframes shimmerScale { 0% { transform: scale(0.96) rotate(0deg); opacity: 0.75; } 50% { transform: scale(1.03) rotate(7deg); opacity: 1; } 100% { transform: scale(0.96) rotate(0deg); opacity: 0.75; } }
         @keyframes lift { from { transform: translateY(14px) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
 
-        /* leaves overlay */
-        .leaves-overlay { pointer-events: none; position: fixed; inset: 0; z-index: 60; overflow: hidden; display:block; animation: overlayFade 320ms ease both; }
-        @keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
-
-        .leaves-overlay .leaf {
-          position:absolute;
-          top:-10%;
-          left:calc(var(--i) * 7%);
-          font-size: 22px;
-          transform: translateY(-8vh) rotate(0deg) scale(0.9);
-          opacity:0;
-          /* main fall animation includes gentle easing and opacity crossfade */
-          animation: leafFall 1200ms cubic-bezier(.12,.78,.32,1) forwards;
-          animation-delay: calc(var(--i) * 45ms);
-          filter: drop-shadow(0 6px 8px rgba(8,20,12,0.06));
+        /* Leaves overlay */
+        .leaves-overlay {
+          pointer-events: none;
+          position: fixed;
+          inset: 0;
+          z-index: 60;
+          overflow: hidden;
+          display: block;
+          opacity: 0;
+          transition: opacity 260ms ease;
+        }
+        .leaves-overlay.active {
+          opacity: 1;
         }
 
-        /* add a subtle staggered pop-in before the fall for smoother entrance */
+        /* each leaf is an empty span; visual is built with ::before / ::after so no emoji text appears */
+        .leaves-overlay .leaf {
+          --size: 22px;
+          position: absolute;
+          top: -12%;
+          left: calc(var(--i) * 7%);
+          width: var(--size);
+          height: calc(var(--size) * 0.7);
+          transform-origin: center;
+          opacity: 0;
+          animation: leafFall ${LEAVES_DURATION_MS}ms cubic-bezier(.12,.78,.32,1) forwards;
+          animation-delay: calc(var(--i) * 45ms);
+        }
+
+        /* decorative leaf shape using pseudo-elements (no emoji glyphs) */
         .leaves-overlay .leaf::before {
           content: "";
           display: block;
+          width: 100%;
+          height: 100%;
+          border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%;
+          transform: rotate(-18deg);
+          background: linear-gradient(160deg, rgba(34,139,34,0.95), rgba(106,201,117,0.92));
+          box-shadow: 0 6px 10px rgba(8,20,12,0.06);
+        }
+        .leaves-overlay .leaf::after {
+          content: "";
+          position: absolute;
+          left: 44%;
+          top: 18%;
+          width: 1px;
+          height: 60%;
+          background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.06));
+          transform: rotate(-16deg);
+          border-radius: 1px;
+          opacity: 0.9;
         }
 
-        .leaves-overlay .leaf:nth-child(3n) { font-size:24px; }
-        .leaves-overlay .leaf:nth-child(4n) { font-size:18px; }
+        /* variety in sizes */
+        .leaves-overlay .leaf:nth-child(3n) { --size: 26px; }
+        .leaves-overlay .leaf:nth-child(4n) { --size: 18px; }
 
         @keyframes leafFall {
           0% {
             opacity: 0;
-            transform: translateY(-8vh) translateX(0) rotate(-5deg) scale(0.82);
-            filter: drop-shadow(0 2px 6px rgba(8,20,12,0.04));
+            transform: translateY(-8vh) translateX(0) rotate(-6deg) scale(0.86);
+            filter: drop-shadow(0 2px 6px rgba(8,20,12,0.02));
           }
           12% {
             opacity: 0.9;
-            transform: translateY(6vh) translateX(2vw) rotate(6deg) scale(1.03);
+            transform: translateY(6vh) translateX(2vw) rotate(6deg) scale(1.06);
           }
           60% {
             opacity: 1;
             transform: translateY(60vh) translateX(8vw) rotate(180deg) scale(0.98);
           }
           100% {
-            opacity: 0.0;
-            transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.95);
+            opacity: 0;
+            transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.94);
             filter: drop-shadow(0 10px 18px rgba(8,20,12,0.06));
           }
         }
 
         @media (max-width: 640px) {
-          .leaves-overlay .leaf { font-size: 14px; left: calc(var(--i) * 6%); }
+          .leaves-overlay .leaf { left: calc(var(--i) * 6%); --size: 14px; }
         }
       `}</style>
     </main>
