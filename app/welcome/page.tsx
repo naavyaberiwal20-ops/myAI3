@@ -7,20 +7,9 @@ import { useRef, useState, useCallback, useEffect } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 /**
- * Premium Welcome / Hero — drop-in replacement for your existing page.tsx
- *
- * Keeps:
- * - ThemeToggle import & render
- * - audioRef + fade out behaviour
- * - leaves overlay with brief animation
- * - ensureNavigate fallback navigation
- *
- * Upgrades:
- * - modern hero layout with SVG background blob + radial highlights
- * - glass feature cards with hover lift
- * - large, elegant type (Playfair for headline)
- * - 3D CTA with deep shadow & subtle shine
- * - prefers-reduced-motion support
+ * Drop-in replacement for the welcome page.
+ * Fixes Turbopack parse errors by avoiding unterminated/multiline class strings
+ * and by using a plain <style> tag (no styled-jsx).
  */
 
 export default function WelcomePage() {
@@ -28,29 +17,31 @@ export default function WelcomePage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadeIntervalRef = useRef<number | null>(null);
 
-  // timings
+  // timings (ms)
   const AUDIO_PLAY_MS = 2800;
-  const LEAVES_DURATION_MS = 1400;
+  const LEAVES_DURATION_MS = 1400; // used in JS timing only; CSS uses fixed 1400ms
   const LEAVES_SHOW_DELAY = 120;
 
   const [leavesActive, setLeavesActive] = useState(false);
   const [leavesMounted, setLeavesMounted] = useState(false);
 
-  // Basic fade out (safe)
   const clearFadeInterval = () => {
     if (fadeIntervalRef.current) {
       window.clearInterval(fadeIntervalRef.current);
       fadeIntervalRef.current = null;
     }
   };
+
   const fadeOutAudio = useCallback((duration = 600) => {
     const audio = audioRef.current;
     if (!audio) return;
+
     try {
       const startVol = Math.max(0, Math.min(1, audio.volume || 0.36));
       const steps = Math.max(4, Math.ceil(duration / 50));
       let step = 0;
       clearFadeInterval();
+
       fadeIntervalRef.current = window.setInterval(() => {
         step++;
         const fraction = step / steps;
@@ -75,13 +66,13 @@ export default function WelcomePage() {
     }
   }, []);
 
-  // robust navigation helper
   const ensureNavigate = (path: string) => {
     try {
       router.push(path);
     } catch {
       // ignore
     }
+
     setTimeout(() => {
       try {
         if (typeof window !== "undefined") {
@@ -90,11 +81,12 @@ export default function WelcomePage() {
             window.location.assign(path);
           }
         }
-      } catch {}
+      } catch {
+        // ignore
+      }
     }, 420);
   };
 
-  // click handler for CTA
   const handleGetStarted = async () => {
     try {
       if (audioRef.current) {
@@ -103,10 +95,10 @@ export default function WelcomePage() {
         await audioRef.current.play();
       }
     } catch {
-      // autoplay blocked — ok
+      // autoplay might be blocked — ignore
     }
 
-    // leaves show
+    // show leaves briefly
     setLeavesMounted(true);
     window.setTimeout(() => setLeavesActive(true), LEAVES_SHOW_DELAY);
     window.setTimeout(() => {
@@ -114,7 +106,7 @@ export default function WelcomePage() {
       window.setTimeout(() => setLeavesMounted(false), 400);
     }, LEAVES_DURATION_MS + 300);
 
-    // fade audio then navigate
+    // fade audio, then navigate
     window.setTimeout(() => {
       try {
         if (audioRef.current) fadeOutAudio(550);
@@ -132,144 +124,143 @@ export default function WelcomePage() {
     <span key={i} className="leaf" style={{ ['--i' as any]: i }} aria-hidden />
   ));
 
-  // Respect prefers-reduced-motion by disabling the animated entrance if user prefers it
+  // respects reduced-motion
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(mq.matches);
-    const onChange = () => setReducedMotion(mq.matches);
+    const handler = () => setReducedMotion(mq.matches);
     try {
-      mq.addEventListener?.('change', onChange);
+      mq.addEventListener?.("change", handler);
     } catch {
-      // older browsers
-      mq.addListener?.(onChange);
+      // fallback for older browsers
+      mq.addListener?.(handler);
     }
     return () => {
       try {
-        mq.removeEventListener?.('change', onChange);
+        mq.removeEventListener?.("change", handler);
       } catch {
-        mq.removeListener?.(onChange);
+        mq.removeListener?.(handler);
       }
     };
   }, []);
 
+  // Build classNames safely with array/join to avoid parser issues
+  const logoBadgeClasses = [
+    "w-28",
+    "h-28",
+    "sm:w-32",
+    "sm:h-32",
+    "rounded-full",
+    "bg-white/90",
+    "dark:bg-black/30",
+    "backdrop-blur-md",
+    "flex",
+    "items-center",
+    "justify-center",
+    "shadow-[0_30px_80px_rgba(4,20,12,0.08),inset_0_2px_8px_rgba(255,255,255,0.6)]",
+    "transform",
+    "transition-transform",
+    "duration-700",
+  ].join(" ");
+
   return (
-    <main className="min-h-screen w-full relative bg-gradient-to-b from-emerald-50 via-white to-white dark:from-[#02120f] dark:via-[#03181a]">
-      {/* Top right theme toggle */}
-      <header className="absolute top-6 right-6 z-50">
+    <main className="welcome-hero min-h-screen w-full flex flex-col items-center justify-start p-4 relative overflow-hidden">
+      {/* Top: theme toggle */}
+      <header className="absolute top-4 left-0 right-0 z-60 flex items-center justify-end px-6">
         <div className="flex items-center gap-3">
           <ThemeToggle />
         </div>
       </header>
 
-      {/* Hero SVG background shapes */}
-      <div className="absolute inset-0 -z-20 pointer-events-none">
-        <svg className="w-full h-full" viewBox="0 0 1600 800" preserveAspectRatio="none" aria-hidden>
-          <defs>
-            <linearGradient id="heroG1" x1="0" x2="1">
-              <stop offset="0%" stopColor="#E8FBF0" />
-              <stop offset="100%" stopColor="#ffffff" />
-            </linearGradient>
-            <radialGradient id="heroRad" cx="0.9" cy="0.12" r="0.6">
-              <stop offset="0%" stopColor="#E6F9EF" stopOpacity="0.85" />
-              <stop offset="100%" stopColor="#E6F9EF" stopOpacity="0.04" />
-            </radialGradient>
-            <filter id="softBlur"><feGaussianBlur stdDeviation="40" /></filter>
-          </defs>
-
-          <path d="M0 160 C160 -40 420 -40 740 40 C980 96 1260 40 1600 180 L1600 800 L0 800 Z" fill="url(#heroG1)" filter="url(#softBlur)" opacity="0.95" />
-          <circle cx="1460" cy="80" r="420" fill="url(#heroRad)" opacity="0.6" />
-        </svg>
+      {/* Background layers */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-40">
+        <div className="bg-circle left" />
+        <div className="bg-circle right" />
+        <div className="pattern-dots" />
+        <div className="floating-orb" />
       </div>
 
-      {/* Center content */}
-      <div className="relative z-20 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-20 md:py-28">
-        <div className="flex gap-10 items-start">
-          {/* Floating logo badge */}
-          <div className="flex-shrink-0 mt-2">
-            <div
-              className="w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-white/90 dark:bg-black/30 backdrop-blur-md flex items-center justify-center
-                          shadow-[0_30px_80px_rgba(4,20,12,0.08),inset_0_2px_8px_rgba(255,255,255,0.6)]
-                          transform transition-transform duration-700"
-              style={{ willChange: "transform", animation: reducedMotion ? 'none' : 'float 6s ease-in-out infinite' } as any}
-              aria-hidden
-            >
-              <Image src="/logo.png" alt="Greanly logo" width={80} height={80} className="object-contain" />
+      {/* Left & right decorative SVGs */}
+      <svg className="decor-left" width="560" height="760" viewBox="0 0 560 760" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <g fill="none" fillRule="evenodd">
+          <path d="M0 420 C60 300 140 250 220 180 C300 110 360 70 430 40 C500 10 560 0 560 0 L560 760 L0 760 Z" fill="#DFF6E6" opacity="0.95" />
+        </g>
+      </svg>
+
+      <svg className="decor-right" width="640" height="780" viewBox="0 0 640 780" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <g fill="none" fillRule="evenodd">
+          <path d="M640 40 C520 120 480 200 420 260 C360 320 300 380 240 460 C180 540 120 620 60 700 L0 780 L640 780 Z" fill="#E9FBF3" opacity="0.95" />
+        </g>
+      </svg>
+
+      {/* Main card blob + content */}
+      <div className="welcome-card-wrapper z-30 mt-20 w-full flex justify-center">
+        <svg className="card-blob" viewBox="0 0 1000 620" preserveAspectRatio="none" aria-hidden>
+          <defs>
+            <filter id="softShadow2" x="-40%" y="-40%" width="180%" height="180%">
+              <feDropShadow dx="0" dy="36" stdDeviation="64" floodColor="rgba(13,59,42,0.08)" />
+            </filter>
+          </defs>
+          <path d="M120 40 C260 -30 520 -20 720 40 C860 84 960 170 920 310 C880 450 720 560 540 560 C360 560 170 540 110 430 C50 320 68 170 120 40 Z"
+            fill="#FFFFFF" filter="url(#softShadow2)"/>
+        </svg>
+
+        <div className="welcome-card-content" role="region" aria-label="Welcome card content">
+          <header className="welcome-top w-full">
+            <div className="logo-top-left" aria-hidden>
+              <div className={logoBadgeClasses} style={reducedMotion ? undefined : { animation: "float 6s ease-in-out infinite" } as any}>
+                <Image src="/logo.png" width={64} height={64} alt="Greanly" className="rounded-full object-contain" />
+              </div>
             </div>
+
+            <div className="brand-header" style={{ width: "100%", textAlign: "center" }}>
+              <h1 className="welcome-title">Greanly</h1>
+              <p className="welcome-sub">
+                Make your business greener — practical, measurable steps that save money and reduce waste.
+              </p>
+            </div>
+          </header>
+
+          <section className="features-grid" aria-hidden>
+            <button className="feature" onClick={() => onFeatureClick("cuts")} aria-label="Cut costs & waste">
+              <div className="feature-icon" aria-hidden>✓</div>
+              <div className="feature-title">Cut costs & waste</div>
+              <div className="feature-sub">Practical steps you can use now</div>
+            </button>
+
+            <button className="feature" onClick={() => onFeatureClick("suppliers")} aria-label="Find better suppliers">
+              <div className="feature-icon" aria-hidden>🔍</div>
+              <div className="feature-title">Find better suppliers</div>
+              <div className="feature-sub">Sustainable materials & vendors</div>
+            </button>
+
+            <button className="feature" onClick={() => onFeatureClick("plans")} aria-label="Action plans (30/60/90)">
+              <div className="feature-icon" aria-hidden>⚙️</div>
+              <div className="feature-title">Action plans (30/60/90)</div>
+              <div className="feature-sub">Simple prioritized next steps</div>
+            </button>
+          </section>
+
+          {/* CTA */}
+          <div className="cta-row" aria-hidden={false}>
+            <button onClick={handleGetStarted} className="get-started cta-btn" aria-label="Get Started with Greanly">
+              <svg className="cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M5 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="cta-label">Get Started</span>
+            </button>
           </div>
 
-          {/* Text and features */}
-          <div className="flex-1">
-            <h1 className="font-[PlayfairDisplay], serif text-4xl sm:text-6xl md:text-6xl font-extrabold text-emerald-900 dark:text-emerald-200 leading-tight" style={{ letterSpacing: '-0.02em' }}>
-              Greanly
-            </h1>
-
-            <p className="mt-4 max-w-3xl text-lg sm:text-xl text-emerald-700 dark:text-emerald-200/90">
-              Make your business greener — practical, measurable steps that save money and reduce waste.
-            </p>
-
-            {/* Feature cards */}
-            <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-              {[
-                { id: 'cuts', title: 'Cut costs & waste', sub: 'Practical steps you can use now', icon: '✓' },
-                { id: 'suppliers', title: 'Find better suppliers', sub: 'Sustainable materials & vendors', icon: '🔍' },
-                { id: 'plans', title: 'Action plans (30/60/90)', sub: 'Simple prioritized next steps', icon: '⚙️' },
-              ].map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => onFeatureClick(f.id)}
-                  className="group relative rounded-xl p-6 bg-white/90 dark:bg-[#04201a]/60 border border-white/60 dark:border-black/20
-                             shadow-[0_18px_50px_rgba(10,30,20,0.06)] hover:shadow-[0_30px_80px_rgba(8,40,30,0.09)]
-                             transform transition-all duration-300 ease-out hover:-translate-y-2 text-left"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-none w-12 h-12 rounded-full grid place-items-center text-lg bg-emerald-50 dark:bg-emerald-900/20 shadow-sm text-emerald-800">
-                      {f.icon}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-emerald-800 dark:text-emerald-100">{f.title}</div>
-                      <div className="text-sm text-emerald-600 dark:text-emerald-200/80 mt-1">{f.sub}</div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* CTA */}
-            <div className="mt-12 flex flex-col sm:flex-row sm:items-center sm:gap-6 gap-4">
-              <button
-                onClick={handleGetStarted}
-                className="relative inline-flex items-center gap-3 px-8 py-4 rounded-full text-base font-semibold
-                           bg-gradient-to-b from-[#0b3f2a] to-[#08321f] text-emerald-100 shadow-[0_50px_90px_rgba(6,18,10,0.2)]
-                           hover:translate-y-[-4px] transform transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200/30"
-                aria-label="Get Started"
-                style={{ willChange: 'transform' }}
-              >
-                <span className="inline-flex w-9 h-9 items-center justify-center rounded-full bg-emerald-50/30 text-emerald-100">
-                  ➜
-                </span>
-                <span>Get Started</span>
-
-                {/* glow under CTA */}
-                <span className="absolute left-1/2 -translate-x-1/2 -bottom-8 w-64 h-12 rounded-full blur-3xl" style={{ background: 'radial-gradient(closest-side, rgba(20,120,70,0.10), transparent)' }} />
-              </button>
-
-              <a href="#learn" className="text-sm text-emerald-700 dark:text-emerald-200/80 hover:underline">
-                Learn how it works
-              </a>
-            </div>
-
-            <div className="mt-8 text-sm text-emerald-700 dark:text-emerald-300/70">
-              Built with care • AI + practical sustainability tips
-            </div>
-          </div>
-
-          {/* Right spacer for balance on wide screens */}
-          <div className="hidden lg:block lg:w-40" />
+          <footer className="welcome-foot">
+            <small>Built with care • AI + practical sustainability tips</small>
+          </footer>
         </div>
       </div>
 
-      {/* audio element */}
+      {/* audio */}
       <audio ref={audioRef} src="/ambient-forest.mp3" preload="auto" />
 
       {/* leaves overlay */}
@@ -279,77 +270,136 @@ export default function WelcomePage() {
         </div>
       )}
 
-      {/* Local styles for animations & legacy support */}
-      <style jsx>{`
+      {/* styles — plain <style> (not styled-jsx) and no JS interpolation inside CSS */}
+      <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
 
-        /* floating logo keyframes (disabled if user prefers reduced motion) */
-        @keyframes float {
-          0% { transform: translateY(0) }
-          50% { transform: translateY(-8px) }
-          100% { transform: translateY(0) }
+        :root {
+          --accent-1: #0D3B2A;
+          --accent-2: #14503B;
+          --card-text-light: #10201A;
+          --btn-bg: linear-gradient(180deg, #062b1f 0%, #0b3928 100%);
+          --btn-text: #DFF6E8;
+          --btn-glow: rgba(26, 184, 96, 0.16);
         }
 
-        /* leaves animation timing derived from LEAVES_DURATION_MS var in JS */
-        .leaves-overlay { pointer-events: none; position: fixed; inset: 0; z-index:60; overflow: hidden; opacity: 0; transition: opacity 260ms ease; }
-        .leaves-overlay.active { opacity: 1; }
+        .welcome-hero {
+          background: linear-gradient(180deg, rgba(237,250,240,1) 0%, rgba(245,252,248,1) 100%);
+          min-height: 100vh;
+        }
 
-        .leaves-overlay .leaf {
-          --size: 22px;
-          position: absolute;
-          top: -12%;
-          left: calc(var(--i) * 7%);
-          width: var(--size);
-          height: calc(var(--size) * 0.68);
-          transform-origin: center;
-          opacity: 0;
-          animation: leafFall ${LEAVES_DURATION_MS}ms cubic-bezier(.12,.78,.32,1) forwards;
-          animation-delay: calc(var(--i) * 45ms);
-        }
-        .leaves-overlay .leaf::before {
-          content: "";
-          display: block;
-          width: 100%;
-          height: 100%;
-          border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%;
-          transform: rotate(-18deg);
-          background: linear-gradient(160deg, rgba(34,139,34,0.95), rgba(106,201,117,0.92));
-          box-shadow: 0 6px 10px rgba(8,20,12,0.06);
-        }
-        .leaves-overlay .leaf::after {
-          content: "";
-          position: absolute;
-          left: 44%;
-          top: 18%;
-          width: 1px;
-          height: 60%;
-          background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.06));
-          transform: rotate(-16deg);
-          border-radius: 1px;
-          opacity: 0.9;
-        }
-        .leaves-overlay .leaf:nth-child(3n) { --size: 26px; }
-        .leaves-overlay .leaf:nth-child(4n) { --size: 18px; }
+        .bg-circle.left { position:absolute; left:-240px; top:-160px; width:880px; height:880px; background: linear-gradient(135deg, rgba(223,246,230,1), rgba(201,240,209,0.96)); filter: blur(90px); opacity:0.6; z-index:-45; }
+        .bg-circle.right { position:absolute; right:-180px; bottom:-220px; width:720px; height:720px; background: linear-gradient(135deg, rgba(240,255,246,1), rgba(217,247,228,0.96)); filter: blur(72px); opacity:0.52; z-index:-45; }
+        .pattern-dots { position:absolute; inset:0; background-image: radial-gradient(circle at 10% 20%, rgba(13,59,42,0.02) 1px, transparent 1px); background-size: 26px 26px; opacity:0.25; pointer-events:none; z-index:-44; }
+        .floating-orb { position:absolute; left:10%; bottom:4%; width:200px; height:200px; border-radius:9999px; background: radial-gradient(circle at center, rgba(174,240,199,0.18), rgba(174,240,199,0.06)); filter: blur(36px); z-index:-43; pointer-events:none; }
 
+        .decor-left, .decor-right { position:absolute; z-index:8; pointer-events:none; opacity:0.98; filter: drop-shadow(0 20px 40px rgba(13,59,42,0.04)); }
+        .decor-left { left:-6%; top:6%; width:36vw; max-width:560px; transform: translateX(-6%); }
+        .decor-right { right:-4%; bottom:-2%; width:42vw; max-width:640px; transform: translateX(6%); }
+
+        .welcome-card-wrapper { display:flex; justify-content:center; width:100%; pointer-events:auto; }
+        .card-blob { position:absolute; width:110%; left:-5%; top:8px; z-index:6; filter: drop-shadow(0 40px 92px rgba(13,59,42,0.08)); pointer-events:none; }
+
+        .welcome-card-content {
+          position:relative; z-index:40;
+          width: min(1100px, 92%);
+          margin: 36px 0;
+          padding: 56px 64px 72px;
+          display:flex;
+          flex-direction:column;
+          gap:18px;
+          align-items:center;
+          text-align:center;
+          pointer-events:auto;
+          min-height:420px;
+          color: var(--card-text-light);
+        }
+
+        .logo-top-left { position:absolute; left:44px; top:-28px; z-index:42; width:78px; height:78px; border-radius:999px; background: linear-gradient(180deg, rgba(237,250,240,1), rgba(217,239,224,0.94)); box-shadow: 0 18px 44px rgba(13,59,42,0.06); display:flex; align-items:center; justify-content:center; padding:6px; }
+
+        .welcome-title {
+          font-family: 'Playfair Display', serif;
+          font-weight:900;
+          font-size:48px;
+          margin:0;
+          color: var(--accent-1);
+          letter-spacing:-0.6px;
+          line-height:1;
+        }
+
+        .welcome-sub { margin-top:10px; color: inherit; max-width:880px; font-size:16px; line-height:1.6; }
+
+        .features-grid { margin-top:8px; width:100%; display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; align-items:stretch; }
+        .feature { background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:8px; align-items:center; border:1px solid rgba(13,59,42,0.035); box-shadow:0 10px 36px rgba(13,59,42,0.03); transition: transform 180ms ease, box-shadow 180ms ease; color: inherit; cursor:pointer; text-align:left; }
+        .feature:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(13,59,42,0.06); }
+        .feature-icon { width:56px; height:56px; border-radius:999px; display:grid; place-items:center; font-size:18px; color:var(--accent-1); background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.55); }
+        .feature-title { font-weight:800; color: var(--accent-2); }
+        .feature-sub { font-size:13px; color: rgba(16,32,26,0.56); }
+
+        .cta-row { margin-top:18px; display:flex; justify-content:center; width:100%; }
+        .cta-btn {
+          display:inline-flex;
+          align-items:center;
+          gap:12px;
+          padding:14px 36px;
+          border-radius:999px;
+          background: var(--btn-bg);
+          color: var(--btn-text);
+          font-weight:800;
+          box-shadow:
+            0 18px 40px rgba(4,10,6,0.45),
+            0 8px 34px rgba(3,18,12,0.16),
+            0 0 40px var(--btn-glow);
+          border:none;
+          cursor:pointer;
+          transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms;
+          position: relative;
+          z-index:60;
+          opacity:1;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .cta-btn:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 30px 60px rgba(4,10,6,0.5), 0 12px 56px rgba(3,18,12,0.18), 0 0 64px rgba(26,184,96,0.22); }
+
+        .cta-arrow { color: var(--btn-text); flex: 0 0 auto; display: inline-block; }
+        .cta-label { color: var(--btn-text); font-weight:800; font-size:16px; }
+
+        .welcome-foot { margin-top:20px; color: rgba(16,32,26,0.5); font-size:13px; }
+
+        .leaves-overlay { pointer-events:none; position: fixed; inset: 0; z-index:70; overflow:hidden; display:block; opacity:0; transition: opacity 260ms ease; }
+        .leaves-overlay.active { opacity:1; }
+        .leaves-overlay .leaf { --size:22px; position:absolute; top:-12%; left: calc(var(--i) * 7%); width:var(--size); height: calc(var(--size) * 0.7); transform-origin:center; opacity:0; animation: leafFall 1400ms cubic-bezier(.12,.78,.32,1) forwards; animation-delay: calc(var(--i) * 45ms); }
+        .leaves-overlay .leaf::before { content:""; display:block; width:100%; height:100%; border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%; transform: rotate(-18deg); background: linear-gradient(160deg, rgba(34,139,34,0.95), rgba(106,201,117,0.92)); box-shadow: 0 6px 10px rgba(8,20,12,0.06); }
+        .leaves-overlay .leaf::after { content:""; position:absolute; left:44%; top:18%; width:1px; height:60%; background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.06)); transform: rotate(-16deg); border-radius:1px; opacity:0.9; }
+        .leaves-overlay .leaf:nth-child(3n) { --size:26px; }
+        .leaves-overlay .leaf:nth-child(4n) { --size:18px; }
         @keyframes leafFall {
-          0% { opacity: 0; transform: translateY(-8vh) translateX(0) rotate(-6deg) scale(0.86); filter: drop-shadow(0 2px 6px rgba(8,20,12,0.02)); }
-          12% { opacity: 0.9; transform: translateY(6vh) translateX(2vw) rotate(6deg) scale(1.06); }
-          60% { opacity: 1; transform: translateY(60vh) translateX(8vw) rotate(180deg) scale(0.98); }
-          100% { opacity: 0; transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.94); filter: drop-shadow(0 10px 18px rgba(8,20,12,0.06)); }
+          0% { opacity:0; transform: translateY(-8vh) translateX(0) rotate(-6deg) scale(0.86); filter: drop-shadow(0 2px 6px rgba(8,20,12,0.02)); }
+          12% { opacity:0.9; transform: translateY(6vh) translateX(2vw) rotate(6deg) scale(1.06); }
+          60% { opacity:1; transform: translateY(60vh) translateX(8vw) rotate(180deg) scale(0.98); }
+          100% { opacity:0; transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.94); filter: drop-shadow(0 10px 18px rgba(8,20,12,0.06)); }
         }
 
-        /* Reduced motion support */
+        @media (max-width: 1100px) {
+          .decor-left, .decor-right { display:none; }
+          .welcome-card-content { padding: 34px 22px 46px; min-height: auto; }
+          .features-grid { grid-template-columns: 1fr; gap:14px; }
+          .logo-top-left { left:22px; top:-8px; }
+          .cta-btn { padding:12px 20px; width:100%; justify-content:center; }
+        }
+
+        @media (max-width: 640px) {
+          .welcome-title { font-size:28px; }
+        }
+
+        :root, :global(.dark) .welcome-hero { /* keep dark background in dark mode */
+          /* dark mode handled via Tailwind classes too */
+        }
+
+        /* floating (disabled if user prefers reduced motion) */
+        @keyframes float { 0% { transform: translateY(0) } 50% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
         @media (prefers-reduced-motion: reduce) {
           .leaves-overlay .leaf { animation: none !important; opacity: 0 !important; }
           .w-28 { animation: none !important; transform: none !important; }
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-          .w-28 { width: 84px; height: 84px; }
-        }
-        @media (max-width: 640px) {
-          h1 { font-size: 30px !important; }
         }
       `}</style>
     </main>
