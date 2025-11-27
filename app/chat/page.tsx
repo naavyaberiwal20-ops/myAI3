@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { MessageWall } from "@/components/messages/message-wall";
 import { ChatHeader, ChatHeaderBlock } from "@/app/parts/chat-header";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 import {
   AI_NAME,
@@ -49,10 +50,7 @@ const loadStorage = () => {
 
 const saveStorage = (messages: UIMessage[], durations: any) => {
   if (typeof window === "undefined") return;
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({ messages, durations })
-  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, durations }));
 };
 
 /* ---------------------- CHAT PAGE ---------------------- */
@@ -62,7 +60,8 @@ export default function Chat() {
   const welcomeSeen = useRef(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const stored = typeof window !== "undefined" ? loadStorage() : { messages: [], durations: {} };
+  const stored =
+    typeof window !== "undefined" ? loadStorage() : { messages: [], durations: {} };
   const [initialMessages] = useState<UIMessage[]>(stored.messages);
 
   const { messages, sendMessage, status, stop, setMessages } = useChat({
@@ -138,7 +137,12 @@ export default function Chat() {
               </div>
               <p>Chat with {AI_NAME}</p>
             </ChatHeaderBlock>
-            <ChatHeaderBlock className="justify-end">
+
+            {/* Right controls: Theme toggle + New (clear) */}
+            <ChatHeaderBlock className="justify-end items-center space-x-3">
+              {/* Theme toggle (requires components/ui/theme-toggle.tsx) */}
+              <ThemeToggle />
+
               <Button variant="outline" size="sm" onClick={clearChat}>
                 {CLEAR_CHAT_TEXT}
               </Button>
@@ -201,7 +205,7 @@ export default function Chat() {
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
-                                if (e.shiftKey) return;
+                                if (e.shiftKey) return; // allow newline
                                 e.preventDefault();
                                 form.handleSubmit(onSubmit)();
                               }
