@@ -235,12 +235,11 @@ export default function WelcomePage() {
           --accent-1: #0D3B2A;
           --accent-2: #14503B;
           --card-text-light: #10201A;
-          --card-text-dark: #0F3A2E;
 
           /* CTA tokens — dark green background + light green text/arrow */
-          --btn-bg: linear-gradient(180deg, #082e21 0%, #0a3a2a 100%);
+          --btn-bg: linear-gradient(180deg, #062b1f 0%, #0b3928 100%);
           --btn-text: #DFF6E8; /* light green label & arrow */
-          --btn-glow: rgba(26, 184, 96, 0.15);
+          --btn-glow: rgba(26, 184, 96, 0.16);
         }
 
         .welcome-hero {
@@ -359,18 +358,33 @@ export default function WelcomePage() {
           .welcome-title { font-size:28px; }
         }
 
-        /* Dark mode: ensure card copy uses the deep green, not washed-out light green
-           and keep CTA consistent across themes (requested same look in all modes). */
+        /* Dark mode: readable copy + stronger CTA glow */
         :global(.dark) .welcome-hero { background: linear-gradient(180deg, rgba(6,20,18,0.95), rgba(4,14,12,0.98)); }
-        :global(.dark) .welcome-card-content { color: var(--card-text-dark) !important; }
-        :global(.dark) .welcome-title { color: var(--card-text-dark) !important; }
-        :global(.dark) .feature { background: linear-gradient(180deg, rgba(10,36,30,0.58), rgba(6,28,24,0.46)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 30px rgba(0,0,0,0.28); color: var(--card-text-dark); }
-        :global(.dark) .feature-title { color: var(--card-text-dark); }
-        /* CTA appearance stays identical in dark mode */
-        :global(.dark) .cta-btn { background: var(--btn-bg); box-shadow:
-            0 18px 40px rgba(4,10,6,0.45),
-            0 8px 34px rgba(3,18,12,0.16),
-            0 0 40px var(--btn-glow);
+
+        /* Make the copy inside the white blob readable on dark backgrounds:
+           lighter, desaturated green/near-white keeps the same "green" tone
+           but stays visible. */
+        :global(.dark) .welcome-card-content { color: rgba(224,244,232,0.98) !important; }
+        :global(.dark) .welcome-title { color: rgba(224,244,232,0.98) !important; }
+        :global(.dark) .welcome-sub { color: rgba(204,234,216,0.92) !important; }
+
+        :global(.dark) .feature {
+          background: linear-gradient(180deg, rgba(12,36,30,0.62), rgba(8,28,24,0.56));
+          border: 1px solid rgba(255,255,255,0.04);
+          box-shadow: 0 18px 44px rgba(0,0,0,0.36);
+          color: rgba(220,240,229,0.98);
+        }
+        :global(.dark) .feature-title { color: rgba(208,240,222,0.98); }
+        :global(.dark) .feature-sub { color: rgba(180,210,196,0.86); }
+
+        /* stronger CTA glow on dark backgrounds so the illuminated look stands out */
+        :global(.dark) .cta-btn {
+          background: var(--btn-bg);
+          color: var(--btn-text);
+          box-shadow:
+            0 22px 60px rgba(2,8,6,0.52),
+            0 10px 40px rgba(6,22,18,0.28),
+            0 0 110px rgba(26,184,96,0.30);
         }
         :global(.dark) .cta-arrow,
         :global(.dark) .cta-label { color: var(--btn-text); }
