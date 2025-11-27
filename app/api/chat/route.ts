@@ -1,4 +1,4 @@
-
+//new
 import { streamText, UIMessage, convertToModelMessages, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from 'ai';
 import { MODEL } from '@/config';
 import { SYSTEM_PROMPT } from '@/prompts';
