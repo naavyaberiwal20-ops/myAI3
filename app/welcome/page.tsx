@@ -358,106 +358,44 @@ export default function WelcomePage() {
           .welcome-title { font-size:28px; }
         }
 
-        /* Dark mode: adjust overall backgrounds but force the three boxes and CTA
-           to keep their light-mode appearance exactly as requested. */
-        :global(.dark) .welcome-hero { background: linear-gradient(180deg, rgba(6,20,18,0.95), rgba(4,14,12,0.98)); }
+        /* Dark mode: keep dark background but make ALL text inside the white blob emerald (#145a32) */
+        :global(.dark) .welcome-hero {
+          background: linear-gradient(180deg, rgba(6,20,18,0.95), rgba(4,14,12,0.98));
+        }
 
-        /* Keep the blob/card content readable in dark mode */
-        :global(.dark) .welcome-card-content { color: rgba(224,244,232,0.98) !important; }
+        /* only override text/colors INSIDE the white blob */
+        :global(.dark) .welcome-card-content * {
+          color: #145a32 !important;
+          fill: #145a32 !important;
+          stroke: #145a32 !important;
+        }
 
-        /* === STRONG OVERRIDES: make features & CTA exactly match light mode === */
-
-        /* Feature cards: copy light-mode visuals and force them with !important */
+        /* keep feature cards and icon circles visually identical to light mode (background, shadows) */
         :global(.dark) .feature {
           background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)) !important;
-          border-radius: 14px !important;
-          padding: 18px !important;
-          display: flex !important;
-          flex-direction: column !important;
-          gap: 8px !important;
-          align-items: center !important;
           border: 1px solid rgba(13,59,42,0.035) !important;
           box-shadow: 0 10px 36px rgba(13,59,42,0.03) !important;
-          transition: transform 180ms ease, box-shadow 180ms ease !important;
-          color: var(--card-text-light) !important;
-          mix-blend-mode: normal !important;
         }
 
-        :global(.dark) .feature:hover {
-          transform: translateY(-6px) !important;
-          box-shadow: 0 18px 40px rgba(13,59,42,0.06) !important;
-        }
-
-        /* Feature icon circle: exact light-mode look */
         :global(.dark) .feature-icon {
-          width: 56px !important;
-          height: 56px !important;
-          border-radius: 999px !important;
-          display: grid !important;
-          place-items: center !important;
-          font-size: 18px !important;
-          color: var(--accent-1) !important;
           background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9)) !important;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.55) !important;
-          opacity: 1 !important;
-          filter: none !important;
         }
 
-        /* Feature title & sub: exact light-mode colors */
-        :global(.dark) .feature-title {
-          font-weight: 800 !important;
-          color: var(--accent-2) !important;
-        }
-
-        :global(.dark) .feature-sub {
-          font-size: 13px !important;
-          color: rgba(16,32,26,0.56) !important;
-        }
-
-        /* CTA: exact light-mode look, ensure glow + z-index remain */
+        /* keep CTA visuals as before, but the label/arrow will now inherit emerald from the rule above */
         :global(.dark) .cta-btn {
           background: var(--btn-bg) !important;
-          color: var(--btn-text) !important;
-          font-weight: 800 !important;
           box-shadow:
             0 18px 40px rgba(4,10,6,0.45) !important,
             0 8px 34px rgba(3,18,12,0.16) !important,
             0 0 40px var(--btn-glow) !important;
-          border: none !important;
-          cursor: pointer !important;
-          transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms !important;
-          position: relative !important;
-          z-index: 999 !important; /* ensure CTA sits well above everything */
-          opacity: 1 !important;
-          -webkit-tap-highlight-color: transparent !important;
+          z-index: 999 !important;
         }
 
-        :global(.dark) .cta-btn:hover {
-          transform: translateY(-4px) scale(1.01) !important;
-          box-shadow:
-            0 30px 60px rgba(4,10,6,0.5) !important,
-            0 12px 56px rgba(3,18,12,0.18) !important,
-            0 0 64px rgba(26,184,96,0.22) !important;
-        }
-
-        :global(.dark) .cta-arrow { color: var(--btn-text) !important; stroke: currentColor !important; }
-        :global(.dark) .cta-label { color: var(--btn-text) !important; }
-
-        /* Logo badge: keep subtle tint but not overpower the forced light-mode visuals */
-        :global(.dark) .logo-top-left {
-          background: linear-gradient(180deg, rgba(237,250,240,1), rgba(217,239,224,0.94)) !important;
-          box-shadow: 0 18px 44px rgba(13,59,42,0.06) !important;
-        }
-
-        /* Ensure any SVGs/inline glyphs in forced elements don't inherit dark-mode tint */
-        :global(.dark) .feature-icon,
-        :global(.dark) .feature,
-        :global(.dark) .cta-btn,
-        :global(.dark) .cta-arrow,
-        :global(.dark) .cta-label {
+        /* ensure SVG strokes/fills that use currentColor follow the emerald override */
+        :global(.dark) .welcome-card-content svg {
           color: inherit !important;
-          opacity: 1 !important;
-          mix-blend-mode: normal !important;
+          stroke: currentColor !important;
+          fill: currentColor !important;
         }
       `}</style>
     </main>
