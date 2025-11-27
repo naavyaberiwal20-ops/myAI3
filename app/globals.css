@@ -1,176 +1,121 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Keep custom variant from your original setup */
+/* Custom dark variant */
 @custom-variant dark (&:is(.dark *));
 
-/* theme mapping */
+/* Theme token mapping */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
   --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
   --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --color-primary-foreground: var(--primary-foreground);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ------------------------
-   Brand variables (Greanly)
-   ------------------------ */
+/* ----------------------------------
+   BRAND VARIABLES (GREANLY)
+---------------------------------- */
 :root {
   --radius: 0.875rem;
-  --space-xs: 6px;
-  --space-sm: 10px;
-  --space-md: 18px;
-  --space-lg: 28px;
-  --space-xl: 40px;
 
-  /* brand colors */
+  /* Brand colors */
   --green-forest: #0D3B2A;
-  --green-leaf:   #D9EDC5;
-  --green-moss:   #14503B;
-  --green-mint:   #ECF7E8;
-  --cream:        #F7F4E9;
-  --earth-brown:  #7A6F5C;
+  --green-leaf: #D9EDC5;
+  --green-moss: #14503B;
+  --green-mint: #ECF7E8;
+  --cream: #F7F4E9;
 
-  --charcoal:     #10201A;
-  --stone-grey:   #6A6A6A;
-  --light-grey:   #E9E9E6;
-  --white:        #FFFFFF;
+  --charcoal: #10201A;
+  --stone-grey: #6A6A6A;
+  --white: #FFFFFF;
 
-  --background-gradient-start: rgba(237,250,240,0.75);
-  --background-gradient-end: rgba(245,252,248,0.95);
+  /* Background gradient */
+  --background-gradient-start: rgba(237,250,240,0.85);
+  --background-gradient-end: rgba(245,252,248,0.97);
 
   --background: var(--background-gradient-start);
   --foreground: var(--charcoal);
-  --card: var(--white);
-  --card-foreground: var(--charcoal);
+
+  --border: rgba(13,59,42,0.07);
+  --input: rgba(13,59,42,0.05);
+  --ring: rgba(72,168,118,0.20);
 
   --primary: var(--green-forest);
   --primary-foreground: var(--white);
-  --secondary: var(--green-moss);
-  --secondary-foreground: var(--white);
 
-  --border: rgba(13,59,42,0.06);
-  --input: rgba(13,59,42,0.04);
-  --ring: rgba(72,168,118,0.16);
-
-  /* paper texture file */
-  --paper-url: "/recycled-paper.png";
-  --paper-opacity: 0.88;
-  --paper-size: 1200px 1200px;
+  /* PAPER TEXTURE — KEEPING SAME FILE NAME */
+  --paper-url: "/recycled-paper.png"; /* <--- DO NOT CHANGE */
+  --paper-opacity: 0.80;
+  --paper-size: 2200px 2200px;
   --paper-blend: multiply;
 }
 
-/* Dark theme overrides */
+/* Dark Mode */
 .dark {
-  --background-gradient-start: rgba(6,23,18,0.8);
+  --background-gradient-start: rgba(6,23,18,0.85);
   --background-gradient-end: rgba(10,28,23,0.95);
 
   --background: #071815;
   --foreground: #E7F5EE;
-  --card: #0B2B22;
-  --card-foreground: #E7F5EE;
-
-  --primary: #0B2B22;
-  --primary-foreground: #E7F5EE;
-  --secondary: #14503B;
-  --secondary-foreground: #E7F5EE;
 
   --border: rgba(255,255,255,0.04);
-  --input: rgba(255,255,255,0.03);
-  --ring: rgba(72,168,118,0.12);
+  --input: rgba(255,255,255,0.07);
+  --ring: rgba(72,168,118,0.15);
 
-  --paper-opacity: 0.7;
+  --paper-opacity: 0.75;
   --paper-blend: normal;
 }
 
-/* ------------------------
-   Base Styles
-   ------------------------ */
-
+/* ----------------------------------
+   BASE LAYER
+---------------------------------- */
 @layer base {
+
   * {
     box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
 
   html, body, #__next {
     height: 100%;
-  }
-
-  /* 🌿 Background now includes your PNG */
-  body {
-    font-family: var(--font-sans, Inter), system-ui, -apple-system;
-    color: var(--foreground);
     margin: 0;
     padding: 0;
+  }
 
-    /* 👇 Your PNG + your green gradient */
+  /* ------------------------------
+     FIXED: Clean background
+     ------------------------------ */
+  body {
+    font-family: var(--font-sans, Inter), sans-serif;
+    color: var(--foreground);
+
+    /* ONLY gradient + your recycled paper */
     background-image:
-      linear-gradient(180deg, var(--background-gradient-start), var(--background-gradient-end)),
-      url("/recycled-paper.png");
+      linear-gradient(
+        180deg,
+        var(--background-gradient-start),
+        var(--background-gradient-end)
+      ),
+      url("/recycled-paper.png"); /* <<< your real PNG */
     background-repeat: no-repeat;
     background-size: cover;
     background-attachment: fixed;
 
-    line-height: 1.52;
     position: relative;
     z-index: 0;
+    line-height: 1.55;
   }
-
-  /* Keep your full UI styling below (unchanged) */
-  .app-container { max-width: 1100px; margin: 34px auto; padding: 28px; 
-    min-height: calc(100vh - 68px); display:flex; flex-direction:column; gap:20px; position:relative; z-index:1; }
-
-  .soft-card {
-    background: var(--card);
-    color: var(--card-foreground);
-    border-radius: calc(var(--radius) + 4px);
-    box-shadow: 0 18px 40px rgba(13,59,42,0.06),
-                0 2px 6px rgba(13,59,42,0.03);
-    border: 1px solid var(--border);
-    padding: var(--space-md);
-  }
-
-  /* ... (ALL OTHER STYLES REMAIN UNCHANGED — YOU KEEP EVERYTHING) ... */
 }
 
-/* ------------------------
-   Global Paper Texture Overlay
-   ------------------------ */
+/* ----------------------------------
+   GLOBAL PAPER OVERLAY (texture)
+   ---------------------------------- */
 body::after {
   content: "";
   position: fixed;
@@ -181,39 +126,25 @@ body::after {
   background-image: url(var(--paper-url));
   background-repeat: repeat;
   background-size: var(--paper-size);
-  background-position: top left;
+  background-position: center;
 
   mix-blend-mode: var(--paper-blend);
-
   opacity: var(--paper-opacity);
 
-  filter: contrast(0.98) saturate(0.92) brightness(0.98);
+  /* Polished organic look */
+  filter: contrast(0.95) brightness(0.98) saturate(0.95);
 }
 
-/* Retina support */
+/* Retina */
 @media only screen and (min-resolution: 2dppx) {
   body::after {
-    background-image: url("/recycled-paper.png");
-    background-size: calc(var(--paper-size) / 2);
+    background-size: 1600px 1600px;
   }
 }
 
-/* Utilities unchanged */
+/* ----------------------------------
+   UTILITIES
+---------------------------------- */
 @layer utilities {
-  .shadow-green-sm { box-shadow: 0 6px 14px rgba(13,59,42,0.04); }
-  .ring-ghost { box-shadow: 0 0 0 6px var(--ring); }
-  .border-subtle { border-color: var(--sidebar-border); }
-  .bg-assistant { background: var(--green-leaf); }
-  .text-brand { color: var(--green-forest); }
-  .bg-brand { background: var(--primary); color: var(--primary-foreground); }
-  .bg-surface { background: var(--green-mint); }
-}
-
-/* Responsive tweaks */
-@media (max-width: 1024px) {
-  .app-container { margin:20px; padding:18px; max-width:920px; }
-}
-
-@media (max-width: 640px) {
-  .app-container { margin:12px; padding:12px; }
+  .shadow-green-sm { box-shadow: 0 6px 14px rgba(13,59,42,0.06); }
 }
