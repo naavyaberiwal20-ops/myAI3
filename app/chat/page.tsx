@@ -209,8 +209,8 @@ export default function ChatPage() {
 
             <div className="top-controls">
               <ThemeToggle />
+              {/* removed New & Save from top controls as requested */}
               <Button variant="outline" size="sm" onClick={clearChat}>{CLEAR_CHAT_TEXT}</Button>
-              <Button variant="ghost" size="sm" onClick={saveCurrentToHistory}>Save</Button>
             </div>
           </header>
 
@@ -344,17 +344,23 @@ export default function ChatPage() {
           .messages-wrap { max-height: 50vh; }
         }
 
-        /* DARK MODE overrides - keeps contrast and avoids washed out tones */
+        /* DARK MODE overrides - keeps contrast and avoids washed out tones
+           NOTE: we ensure sidebar buttons, mini/refresh/save are visible in dark */
         :global(.dark) .greanly-shell { background: linear-gradient(180deg,#061612, #062018); }
         :global(.dark) .sidebar { background: linear-gradient(180deg,#071815, #071E18); border-color: rgba(255,255,255,0.04); box-shadow: 0 18px 40px rgba(0,0,0,0.6); }
         :global(.dark) .brand-title, :global(.dark) .history-title, :global(.dark) .title { color: #CFEFE0; }
         :global(.dark) .brand-sub, :global(.dark) .history-meta, :global(.dark) .subtitle, :global(.dark) .sidebar-footer { color: rgba(255,255,255,0.64); }
+
+        /* make left-buttons visible in dark mode */
         :global(.dark) .btn.new-left { background: linear-gradient(180deg,#072518,#073826); color:#DFF6E6; border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
-        :global(.dark) .btn.primary { box-shadow: 0 10px 36px rgba(0,0,0,0.6); background: linear-gradient(135deg,#0B2B22,#0F3A2E); }
+        :global(.dark) .btn.ghost { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color: rgba(223,246,230,0.9); border: 1px solid rgba(255,255,255,0.04); box-shadow: none; }
+        :global(.dark) .mini { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color: rgba(223,246,230,0.88); border: 1px solid rgba(255,255,255,0.04); }
+        :global(.dark) .tiny { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); color: rgba(223,246,230,0.88); border: 1px solid rgba(255,255,255,0.04); }
+        :global(.dark) .tiny.danger { color: #FFA8A8; border-color: rgba(255,255,255,0.03); }
+
         :global(.dark) .chat-card { background: linear-gradient(180deg,#061612,#04120F); border-color: rgba(255,255,255,0.03); box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
         :global(.dark) .composer-input { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.04); color: #E6F6EE; }
         :global(.dark) .history-item.active { background: rgba(255,255,255,0.02); }
-        :global(.dark) .tiny.danger { color: #FFA8A8; border-color: rgba(255,255,255,0.03); }
       `}</style>
     </div>
   );
