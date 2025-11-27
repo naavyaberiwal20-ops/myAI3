@@ -114,13 +114,35 @@ export default function WelcomePage() {
       </div>
 
       {/* decorative left & right inline SVG foliage */}
-      <svg className="decor-left" width="420" height="640" viewBox="0 0 420 640" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <svg
+        className="decor-left"
+        width="420"
+        height="640"
+        viewBox="0 0 420 640"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden
+      >
         <g fill="none" fillRule="evenodd">
-          <path d="M0 360 C40 260 90 220 140 160 C190 100 240 70 300 40 C350 15 420 10 420 10 L420 640 L0 640 Z"
-            fill="#DFF6E6" opacity="0.95" />
+          <path
+            d="M0 360 C40 260 90 220 140 160 C190 100 240 70 300 40 C350 15 420 10 420 10 L420 640 L0 640 Z"
+            fill="#DFF6E6"
+            opacity="0.95"
+          />
           <g transform="translate(18,40)" opacity="0.98">
-            <path d="M30 420 C56 340 120 300 160 250 C200 200 230 170 290 140" stroke="#14503B" strokeWidth="6" strokeLinecap="round" strokeOpacity="0.14"/>
-            <path d="M40 380 C72 336 120 310 160 280" stroke="#0D3B2A" strokeWidth="4" strokeLinecap="round" strokeOpacity="0.18"/>
+            <path
+              d="M30 420 C56 340 120 300 160 250 C200 200 230 170 290 140"
+              stroke="#14503B"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeOpacity="0.14"
+            />
+            <path
+              d="M40 380 C72 336 120 310 160 280"
+              stroke="#0D3B2A"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeOpacity="0.18"
+            />
             <ellipse cx="40" cy="240" rx="34" ry="14" fill="#0D3B2A" opacity="0.12" />
             <ellipse cx="78" cy="200" rx="26" ry="12" fill="#14503B" opacity="0.08" />
             <ellipse cx="118" cy="160" rx="36" ry="15" fill="#0D3B2A" opacity="0.14" />
@@ -128,13 +150,35 @@ export default function WelcomePage() {
         </g>
       </svg>
 
-      <svg className="decor-right" width="520" height="720" viewBox="0 0 520 720" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <svg
+        className="decor-right"
+        width="520"
+        height="720"
+        viewBox="0 0 520 720"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden
+      >
         <g fill="none" fillRule="evenodd">
-          <path d="M520 20 C420 80 380 160 320 220 C260 280 200 340 160 420 C120 500 80 580 40 640 L0 720 L520 720 Z"
-            fill="#E9FBF3" opacity="0.95" />
+          <path
+            d="M520 20 C420 80 380 160 320 220 C260 280 200 340 160 420 C120 500 80 580 40 640 L0 720 L520 720 Z"
+            fill="#E9FBF3"
+            opacity="0.95"
+          />
           <g transform="translate(70,20)" opacity="0.98">
-            <path d="M50 80 C96 140 140 180 190 220 C240 260 270 300 320 360" stroke="#14503B" strokeWidth="6" strokeLinecap="round" strokeOpacity="0.14"/>
-            <path d="M60 120 C112 180 160 220 200 260" stroke="#0D3B2A" strokeWidth="4" strokeLinecap="round" strokeOpacity="0.18"/>
+            <path
+              d="M50 80 C96 140 140 180 190 220 C240 260 270 300 320 360"
+              stroke="#14503B"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeOpacity="0.14"
+            />
+            <path
+              d="M60 120 C112 180 160 220 200 260"
+              stroke="#0D3B2A"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeOpacity="0.18"
+            />
             <ellipse cx="240" cy="340" rx="26" ry="12" fill="#14503B" opacity="0.10" />
             <ellipse cx="200" cy="300" rx="18" ry="8" fill="#0D3B2A" opacity="0.08" />
           </g>
@@ -224,76 +268,204 @@ export default function WelcomePage() {
       )}
 
       <style jsx>{`
+        /* ------------------------------
+           Welcome page with subtle foliage overlap
+           ------------------------------ */
+
         /* layout & background */
         .welcome-hero {
           background: linear-gradient(180deg, rgba(237,250,240,1) 0%, rgba(245,252,248,1) 100%);
         }
 
-        .welcome-bg { position: absolute; inset: 0; z-index: -30; pointer-events: none; }
-        .bg-circle { position: absolute; border-radius: 9999px; filter: blur(56px); transform: translateZ(0); }
-        .bg-circle.left { left: -160px; top: -160px; width: 520px; height: 520px; background: linear-gradient(135deg, #DFF6E6, #C9F0D1); opacity: 0.6; }
-        .bg-circle.right { right: -120px; bottom: -160px; width: 420px; height: 420px; background: linear-gradient(135deg, #F0FFF6, #D9F7E4); opacity: 0.55; }
+        .welcome-bg { position: absolute; inset: 0; z-index: -40; pointer-events: none; }
+        .bg-circle { position: absolute; border-radius: 9999px; filter: blur(72px); transform: translateZ(0); }
+        .bg-circle.left {
+          left: -240px;
+          top: -200px;
+          width: 760px;
+          height: 760px;
+          background: linear-gradient(135deg, rgba(223,246,230,1), rgba(201,240,209,0.96));
+          opacity: 0.62;
+        }
+        .bg-circle.right {
+          right: -180px;
+          bottom: -220px;
+          width: 620px;
+          height: 620px;
+          background: linear-gradient(135deg, rgba(240,255,246,1), rgba(217,247,228,0.96));
+          opacity: 0.56;
+        }
 
-        /* decorative svg positions */
-        .decor-left, .decor-right { position: absolute; z-index: -10; pointer-events: none; opacity: 0.98; filter: drop-shadow(0 10px 30px rgba(13,59,42,0.04)); }
-        .decor-left { left: 8px; top: 8%; max-width: 360px; transform: translateX(-6%); }
-        .decor-right { right: 8px; bottom: 2%; max-width: 460px; transform: translateX(6%); }
+        /* decorative svg positions
+           z-index here is intentionally above the blob but below the content
+        */
+        .decor-left, .decor-right {
+          position: absolute;
+          z-index: 8; /* overlap the blob */
+          pointer-events: none;
+          opacity: 0.98;
+          filter: drop-shadow(0 20px 40px rgba(13,59,42,0.04));
+        }
+        .decor-left { left: 6px; top: 8%; max-width: 360px; transform: translateX(-6%); }
+        .decor-right { right: 6px; bottom: 2%; max-width: 460px; transform: translateX(6%); }
 
+        /* welcome card wrapper: slightly wider, more central */
         .welcome-card-wrapper {
           position: relative;
-          z-index: 10;
-          width: min(1080px, 92%);
-          margin: 48px auto;
+          z-index: 12;
+          width: min(1200px, 94%);
+          margin: 56px auto;
           display: grid;
           place-items: center;
           pointer-events: auto;
         }
 
-        .card-blob { position: absolute; width: 100%; height: auto; left: 0; top: 0; z-index: 0; overflow: visible; }
+        /* blob: sits below foliage but above background */
+        .card-blob {
+          position: absolute;
+          width: 108%;
+          height: auto;
+          left: -4%;
+          top: -8px;
+          z-index: 6; /* below foliage (8) but above bg (-40) */
+          overflow: visible;
+          opacity: 0.98;
+          filter: drop-shadow(0 28px 74px rgba(13,59,42,0.07));
+        }
 
+        /* content container sits above both blob and foliage */
         .welcome-card-content {
           position: relative;
-          z-index: 1;
-          width: 86%;
-          max-width: 920px;
-          padding: 72px 64px;
+          z-index: 10; /* content on top */
+          width: 84%;
+          max-width: 980px;
+          padding: 64px 56px;
           display: flex;
           flex-direction: column;
-          gap: 28px;
+          gap: 26px;
           align-items: center;
           text-align: center;
           background: transparent;
         }
 
-        .welcome-top { width: 100%; display:flex; align-items:center; justify-content:center; gap:24px; position:relative; }
+        /* header area */
+        .welcome-top {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+          position: relative;
+        }
 
-        .logo-top-left { position:absolute; left:42px; top:-12px; z-index:4; display:flex; align-items:center; justify-content:center; width:64px; height:64px; border-radius:9999px; background: linear-gradient(180deg, rgba(237,250,240,1), rgba(217,239,224,0.9)); box-shadow: 0 10px 30px rgba(13,59,42,0.06); padding:6px; }
+        /* top-left logo badge — larger halo + soft inner shadow */
+        .logo-top-left {
+          position: absolute;
+          left: 36px;
+          top: -16px;
+          z-index: 11;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 72px;
+          height: 72px;
+          border-radius: 9999px;
+          background: linear-gradient(180deg, rgba(237,250,240,1), rgba(217,239,224,0.94));
+          box-shadow: 0 14px 36px rgba(13,59,42,0.06), inset 0 2px 8px rgba(255,255,255,0.3);
+          padding: 8px;
+          transform: translateY(-2px);
+        }
+        .logo-top-left img { border-radius: 9999px; display:block; }
 
-        .welcome-title { font-size:38px; line-height:1; font-weight:800; margin:0; color: #10201A; letter-spacing:-0.6px; }
-        .welcome-sub { margin-top:12px; font-size:16px; color: rgba(16,32,26,0.75); max-width:760px; margin-left:auto; margin-right:auto; line-height:1.7; }
+        /* title & subtitle */
+        .welcome-title {
+          font-size: 44px;
+          line-height: 1;
+          font-weight: 800;
+          margin: 0;
+          color: #07221A; /* slightly deeper for premium contrast */
+          letter-spacing: -0.6px;
+          text-rendering: optimizeLegibility;
+        }
+        .welcome-sub {
+          margin-top: 12px;
+          font-size: 16px;
+          color: rgba(16,32,26,0.72);
+          max-width: 820px;
+          margin-left: auto;
+          margin-right: auto;
+          line-height: 1.7;
+        }
 
-        .features-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; width:100%; margin-top:6px; justify-items:center; }
-        .feature { display:flex; flex-direction:column; gap:8px; align-items:center; padding:18px 24px; border-radius:14px; background: linear-gradient(180deg, rgba(245,252,248,0.9), rgba(237,250,240,0.86)); box-shadow:0 10px 26px rgba(13,59,42,0.03); border:1px solid rgba(13,59,42,0.03); min-height:96px; width:100%; max-width:300px; transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms; }
-        .feature:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(13,59,42,0.06); }
+        /* features grid */
+        .features-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 18px;
+          width: 100%;
+          margin-top: 8px;
+          justify-items: center;
+        }
 
-        .feature-icon { width:44px; height:44px; border-radius:999px; background: rgba(13,59,42,0.06); display:grid; place-items:center; font-size:16px; color:#0D3B2A; }
-        .feature-title { font-weight:700; font-size:15px; color:#10201A; }
-        .feature-sub { font-size:13px; color: rgba(16,32,26,0.6); }
+        .feature {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          align-items: center;
+          padding: 20px 24px;
+          border-radius: 14px;
+          background: linear-gradient(180deg, rgba(245,252,248,0.94), rgba(237,250,240,0.9));
+          box-shadow: 0 10px 36px rgba(13,59,42,0.03);
+          border: 1px solid rgba(13,59,42,0.035);
+          min-height: 108px;
+          width: 100%;
+          max-width: 320px;
+          transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms;
+        }
+        .feature:hover { transform: translateY(-6px); box-shadow: 0 20px 52px rgba(13,59,42,0.06); }
 
-        .cta-row { display:flex; justify-content:center; width:100%; }
-        .cta-btn { display:inline-flex; align-items:center; gap:12px; padding:14px 28px; border-radius:28px; background: linear-gradient(135deg, #0D3B2A, #14503B); color:#fff; font-weight:700; text-decoration:none; box-shadow:0 14px 40px rgba(13,59,42,0.12); transform: translateY(0); transition: transform 180ms ease, box-shadow 180ms ease; font-size:16px; border:none; cursor:pointer; }
-        .cta-btn:hover { transform: translateY(-4px); box-shadow:0 22px 56px rgba(13,59,42,0.16); }
+        /* feature icon */
+        .feature-icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(236,247,232,0.9), rgba(217,237,224,0.9));
+          display: grid;
+          place-items: center;
+          font-size: 18px;
+          color: #0D3B2A;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 6px 18px rgba(13,59,42,0.03);
+        }
+        .feature-title { font-weight: 800; font-size: 15px; color: #0D2F27; }
+        .feature-sub { font-size: 13px; color: rgba(16,32,26,0.58); margin-top: 4px; }
 
-        .welcome-foot { margin-top:6px; color: rgba(16,32,26,0.5); font-size:13px; }
+        /* CTA */
+        .cta-row { display:flex; justify-content:center; width:100%; margin-top: 6px; }
+        .cta-btn {
+          display:inline-flex;
+          align-items:center;
+          gap:12px;
+          padding:14px 34px;
+          border-radius: 999px;
+          background: linear-gradient(135deg, #0B3A2A, #124632);
+          color: #fff;
+          font-weight: 800;
+          text-decoration: none;
+          box-shadow: 0 18px 48px rgba(13,59,42,0.14);
+          transform: translateY(0);
+          transition: transform 180ms ease, box-shadow 180ms ease;
+          font-size: 16px;
+          border: none;
+          cursor: pointer;
+        }
+        .cta-btn:hover { transform: translateY(-4px); box-shadow: 0 30px 72px rgba(13,59,42,0.18); }
+        .cta-btn svg { transform: translateY(-1px); opacity: 0.95; }
 
-        /* Get-started button micro-interaction */
-        .get-started { transition: transform 220ms ease, box-shadow 220ms ease; }
-        .get-started:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 18px 40px rgba(16,185,129,0.14), 0 6px 18px rgba(16,185,129,0.06); }
+        .welcome-foot { margin-top: 8px; color: rgba(16,32,26,0.5); font-size:13px; }
 
-        /* Leaves overlay */
-        .leaves-overlay { pointer-events: none; position: fixed; inset: 0; z-index: 60; overflow: hidden; display: block; opacity: 0; transition: opacity 260ms ease; }
+        /* leaves overlay */
+        .leaves-overlay { pointer-events:none; position: fixed; inset: 0; z-index: 60; overflow: hidden; display:block; opacity:0; transition: opacity 260ms ease; }
         .leaves-overlay.active { opacity: 1; }
-
         .leaves-overlay .leaf {
           --size: 22px;
           position: absolute;
@@ -306,12 +478,11 @@ export default function WelcomePage() {
           animation: leafFall ${LEAVES_DURATION_MS}ms cubic-bezier(.12,.78,.32,1) forwards;
           animation-delay: calc(var(--i) * 45ms);
         }
-
         .leaves-overlay .leaf::before {
           content: "";
-          display: block;
-          width: 100%;
-          height: 100%;
+          display:block;
+          width:100%;
+          height:100%;
           border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%;
           transform: rotate(-18deg);
           background: linear-gradient(160deg, rgba(34,139,34,0.95), rgba(106,201,117,0.92));
@@ -329,7 +500,6 @@ export default function WelcomePage() {
           border-radius: 1px;
           opacity: 0.9;
         }
-
         .leaves-overlay .leaf:nth-child(3n) { --size: 26px; }
         .leaves-overlay .leaf:nth-child(4n) { --size: 18px; }
 
