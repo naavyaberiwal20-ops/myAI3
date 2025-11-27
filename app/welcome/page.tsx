@@ -206,7 +206,7 @@ export default function WelcomePage() {
                 <path d="M5 12h14" strokeLinecap="round" />
                 <path d="M12 5l7 7-7 7" strokeLinecap="round" />
               </svg>
-              <span>Get Started</span>
+              <span className="cta-label">Get Started</span>
             </button>
           </div>
 
@@ -310,6 +310,9 @@ export default function WelcomePage() {
         }
         .cta-btn:hover { transform: translateY(-4px); box-shadow: 0 36px 92px rgba(13,59,42,0.22); }
 
+        /* Force the CTA label text to be black in ALL themes */
+        .cta-label { color: #000 !important; font-weight: 800; }
+
         .welcome-foot { margin-top:20px; color: rgba(16,32,26,0.5); font-size:13px; }
 
         .leaves-overlay { pointer-events:none; position: fixed; inset: 0; z-index:70; overflow:hidden; display:block; opacity:0; transition: opacity 260ms ease; }
@@ -346,6 +349,8 @@ export default function WelcomePage() {
         :global(.dark) .feature { background: linear-gradient(180deg, rgba(10,36,30,0.58), rgba(6,28,24,0.46)); border:1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 30px rgba(0,0,0,0.28); color: var(--card-text-dark); }
         :global(.dark) .feature-title { color: var(--card-text-dark); }
         :global(.dark) .cta-btn { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); box-shadow: 0 28px 76px rgba(0,0,0,0.55); color:#fff; }
+        /* ensure the CTA label remains black in dark mode too */
+        :global(.dark) .cta-label { color: #000 !important; }
 
       `}</style>
     </main>
