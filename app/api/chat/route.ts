@@ -10,9 +10,10 @@ import { MODEL } from "@/config";
 import { SYSTEM_PROMPT } from "@/prompts";
 import { isContentFlagged } from "@/lib/moderation";
 
-// ❗ IMPORTANT: use the REAL function, not the tool
+// ❗ Use REAL backend function (NOT the tool)
 import { searchPinecone } from "@/lib/pinecone";
 
+// keep webSearch tool for fallback
 import { webSearch } from "./tools/web-search";
 
 export const maxDuration = 30;
@@ -21,51 +22,41 @@ export async function POST(req: Request) {
   try {
     const { messages }: { messages: UIMessage[] } = await req.json();
 
-    // ---------------------------
-    // 1. MODERATION CHECK
-    // ---------------------------
+    // Get the user message text
     const latestUserMessage = messages.filter((m) => m.role === "user").pop();
+    const userText =
+      latestUserMessage?.parts
+        ?.filter((p: any) => p.type === "text")
+        .map((p: any) => p.text)
+        .join(" ") || "";
 
-    if (latestUserMessage) {
-      const textParts = latestUserMessage.parts
-        .filter((p) => p.type === "text")
-        .map((p: any) => p.text || "")
-        .join("");
+    // Moderation
+    if (userText) {
+      const mod = await isContentFlagged(userText);
+      if (mod.flagged) {
+        const stream = createUIMessageStream({
+          execute({ writer }) {
+            writer.write({ type: "start" });
+            writer.write({ type: "text-start", id: "mod" });
+            writer.write({
+              type: "text-delta",
+              id: "mod",
+              delta: mod.denialMessage,
+            });
+            writer.write({ type: "text-end", id: "mod" });
+            writer.write({ type: "finish" });
+          },
+        });
 
-      if (textParts) {
-        const moderation = await isContentFlagged(textParts);
-        if (moderation.flagged) {
-          const stream = createUIMessageStream({
-            execute({ writer }) {
-              const id = "moderation-denial-text";
-              writer.write({ type: "start" });
-              writer.write({ type: "text-start", id });
-              writer.write({
-                type: "text-delta",
-                id,
-                delta:
-                  moderation.denialMessage ||
-                  "Your message violates our guidelines.",
-              });
-              writer.write({ type: "text-end", id });
-              writer.write({ type: "finish" });
-            },
-          });
-
-          return createUIMessageStreamResponse({ stream });
-        }
+        return createUIMessageStreamResponse({ stream });
       }
     }
 
-    // ---------------------------
-    // 2. MANUAL VECTOR SEARCH FIRST
-    // ---------------------------
-    const userText =
-      latestUserMessage?.parts
-        ?.map((p: any) => (p.type === "text" ? p.text : ""))
-        .join(" ") || "";
+    // --------------------------------------------------
+    // 1️⃣ VECTOR DATABASE FIRST
+    // --------------------------------------------------
 
-    // ❗ FIX: Call searchPinecone directly (NOT the tool!)
+    // ❗ FIX: Call Pinecone directly
     const vectorResults = await searchPinecone(userText);
 
     let resolvedContext = "";
@@ -80,17 +71,14 @@ export async function POST(req: Request) {
       }
     }
 
-    // ---------------------------
-    // 3. IF VECTOR MATCH → ANSWER DIRECTLY
-    // ---------------------------
+    // 2️⃣ If we have a good match → answer from vector context
     if (useVector) {
       const result = streamText({
         model: MODEL,
         system: `
-You are Greanly AI — a sustainability and business efficiency assistant.
-
-Use the following context to answer the user.  
-NEVER reveal that the information came from a document or a database.
+You are Greanly AI — a sustainability assistant.
+Use the following context to answer the user.
+NEVER mention documents, PDFs, Pinecone, or data sources.
 
 CONTEXT:
 ${resolvedContext}
@@ -103,9 +91,10 @@ ${resolvedContext}
       });
     }
 
-    // ---------------------------
-    // 4. OTHERWISE FALLBACK TO WEB SEARCH
-    // ---------------------------
+    // --------------------------------------------------
+    // 3️⃣ Otherwise → model can call webSearch tool
+    // --------------------------------------------------
+
     const result = streamText({
       model: MODEL,
       system: SYSTEM_PROMPT,
@@ -128,20 +117,18 @@ ${resolvedContext}
       sendReasoning: true,
     });
   } catch (err) {
-    console.error("Chat route runtime error:", err);
+    console.error("Chat route error:", err);
 
     const stream = createUIMessageStream({
       execute({ writer }) {
-        const id = "fatal-error-text";
         writer.write({ type: "start" });
-        writer.write({ type: "text-start", id });
+        writer.write({ type: "text-start", id: "fatal" });
         writer.write({
           type: "text-delta",
-          id,
-          delta:
-            "Sorry — something went wrong. Please try again in a moment.",
+          id: "fatal",
+          delta: "An internal error occurred. Please try again.",
         });
-        writer.write({ type: "text-end", id });
+        writer.write({ type: "text-end", id: "fatal" });
         writer.write({ type: "finish" });
       },
     });
