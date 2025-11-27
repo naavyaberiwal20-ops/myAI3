@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function WelcomePage() {
@@ -12,12 +12,17 @@ export default function WelcomePage() {
   const fadeIntervalRef = useRef<number | null>(null);
 
   // timings (ms)
-  const AUDIO_PLAY_MS = 3000;
+  const AUDIO_PLAY_MS = 3000; // plays for 3s (you asked for 3s)
   const LEAVES_DURATION_MS = 1400;
   const LEAVES_SHOW_DELAY = 120;
 
   const [leavesActive, setLeavesActive] = useState(false);
   const [leavesMounted, setLeavesMounted] = useState(false);
+
+  // small debug marker to confirm this file is deployed
+  useEffect(() => {
+    console.info("GREANLY-V4 — welcome page loaded");
+  }, []);
 
   const clearFadeInterval = () => {
     if (fadeIntervalRef.current) {
@@ -89,12 +94,28 @@ export default function WelcomePage() {
     }, AUDIO_PLAY_MS);
   };
 
+  const onFeatureClick = (id: string) => {
+    // feature-specific navigation (adjust as needed)
+    if (id === "plans") {
+      router.push("/chat?focus=plans");
+    } else {
+      router.push("/chat");
+    }
+  };
+
   const leaves = Array.from({ length: 14 }).map((_, i) => (
     <span key={i} className="leaf" style={{ ['--i' as any]: i }} aria-hidden />
   ));
 
   return (
     <main className="welcome-hero min-h-screen w-full flex flex-col items-center justify-start p-4 relative overflow-hidden">
+      {/* Small visible marker so you can verify this file is deployed */}
+      <div style={{ position: "fixed", top: 8, right: 8, zIndex: 9999 }}>
+        <div style={{ background: "rgba(0,0,0,0.06)", padding: "6px 10px", borderRadius: 8, fontSize: 12, color: "#073018", fontWeight: 700 }}>
+          GREANLY-V4
+        </div>
+      </div>
+
       {/* Header: theme toggle only */}
       <header className="absolute top-4 left-0 right-0 z-50 flex items-center justify-end px-6">
         <div className="flex items-center gap-3">
@@ -145,6 +166,7 @@ export default function WelcomePage() {
             fill="#FFFFFF" filter="url(#softShadow2)"/>
         </svg>
 
+        {/* NOTE: Added explicit background & border to the content so it never appears washed out */}
         <div className="welcome-card-content" role="region" aria-label="Welcome card content">
           <header className="welcome-top w-full">
             <div className="logo-top-left" aria-hidden>
@@ -161,24 +183,25 @@ export default function WelcomePage() {
             </div>
           </header>
 
+          {/* FEATURES: converted to <button> elements for accessibility + click handlers */}
           <section className="features-grid" aria-hidden>
-            <div className="feature">
+            <button type="button" onClick={() => onFeatureClick("costs")} className="feature" aria-label="Cut costs and waste">
               <div className="feature-icon" aria-hidden>✓</div>
               <div className="feature-title">Cut costs & waste</div>
               <div className="feature-sub">Practical steps you can use now</div>
-            </div>
+            </button>
 
-            <div className="feature">
+            <button type="button" onClick={() => onFeatureClick("suppliers")} className="feature" aria-label="Find better suppliers">
               <div className="feature-icon" aria-hidden>🔍</div>
               <div className="feature-title">Find better suppliers</div>
               <div className="feature-sub">Sustainable materials & vendors</div>
-            </div>
+            </button>
 
-            <div className="feature">
+            <button type="button" onClick={() => onFeatureClick("plans")} className="feature" aria-label="Action plans 30 60 90">
               <div className="feature-icon" aria-hidden>⚙️</div>
               <div className="feature-title">Action plans (30/60/90)</div>
               <div className="feature-sub">Simple prioritized next steps</div>
-            </div>
+            </button>
           </section>
 
           <div className="cta-row">
@@ -214,8 +237,8 @@ export default function WelcomePage() {
         :root {
           --accent-1: #0D3B2A;
           --accent-2: #14503B;
-          --card-text-light: #10201A; /* light-mode card text */
-          --card-text-dark: #0F3A2E;  /* chosen B: deep green for dark-mode card text */
+          --card-text-light: #10201A;
+          --card-text-dark: #0F3A2E;
         }
 
         .welcome-hero {
@@ -237,7 +260,9 @@ export default function WelcomePage() {
         .welcome-card-wrapper { display:flex; justify-content:center; width:100%; pointer-events: auto; }
         .card-blob { position: absolute; width: 110%; height: auto; left: -5%; top: 8px; z-index: 6; opacity: 0.99; filter: drop-shadow(0 40px 92px rgba(13,59,42,0.08)); pointer-events: none; }
 
-        /* FORCE: card text color depends on theme via CSS var */
+        /* ----------------------
+           Card content: ADDED explicit background, border and elevated z-index
+           ---------------------- */
         .welcome-card-content {
           position: relative; z-index: 40;
           width: min(1100px, 92%);
@@ -250,6 +275,12 @@ export default function WelcomePage() {
           text-align:center;
           pointer-events: auto;
           min-height: 420px;
+
+          /* **** NEW: solid card surface to guarantee contrast **** */
+          background: linear-gradient(180deg, #ffffff, #fbfff9);
+          border-radius: 18px;
+          border: 1px solid rgba(13,59,42,0.04);
+          box-shadow: 0 30px 80px rgba(13,59,42,0.05);
           color: var(--card-text-light); /* default (light) */
         }
 
@@ -266,12 +297,28 @@ export default function WelcomePage() {
           line-height: 1;
         }
 
-        /* subtitle and feature copy inherit .welcome-card-content color (kept consistent across themes) */
         .welcome-sub { margin: 0; margin-top: 10px; color: inherit; max-width:880px; font-size:16px; line-height:1.6; }
 
+        /* ---------- features as real interactive buttons ---------- */
         .features-grid { margin-top: 8px; width:100%; display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; align-items:stretch; }
-        .feature { background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:8px; align-items:center; border:1px solid rgba(13,59,42,0.035); box-shadow:0 10px 36px rgba(13,59,42,0.03); transition: transform 180ms ease, box-shadow 180ms ease; color: inherit; }
+        .feature {
+          -webkit-tap-highlight-color: transparent;
+          background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92));
+          border-radius:14px;
+          padding:18px;
+          display:flex;
+          flex-direction:column;
+          gap:8px;
+          align-items:center;
+          border:1px solid rgba(13,59,42,0.035);
+          box-shadow:0 10px 36px rgba(13,59,42,0.03);
+          transition: transform 180ms ease, box-shadow 180ms ease, background-color 160ms ease;
+          color: inherit;
+          cursor: pointer;
+        }
         .feature:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(13,59,42,0.06); }
+        .feature:active { transform: translateY(-2px) scale(0.998); }
+
         .feature-icon { width:56px; height:56px; border-radius:999px; display:grid; place-items:center; font-size:18px; color:var(--accent-1); background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.55); }
         .feature-title { font-weight:800; color: var(--accent-2); }
         .feature-sub { font-size:13px; color: rgba(16,32,26,0.56); }
@@ -298,6 +345,7 @@ export default function WelcomePage() {
 
         .welcome-foot { margin-top:20px; color: rgba(16,32,26,0.5); font-size:13px; }
 
+        /* leaves */
         .leaves-overlay { pointer-events:none; position: fixed; inset: 0; z-index: 70; overflow: hidden; display:block; opacity:0; transition: opacity 260ms ease; }
         .leaves-overlay.active { opacity: 1; }
         .leaves-overlay .leaf { --size:22px; position:absolute; top:-12%; left: calc(var(--i) * 7%); width:var(--size); height: calc(var(--size) * 0.7); transform-origin:center; opacity:0; animation: leafFall ${LEAVES_DURATION_MS}ms cubic-bezier(.12,.78,.32,1) forwards; animation-delay: calc(var(--i) * 45ms); }
@@ -326,13 +374,23 @@ export default function WelcomePage() {
           .cta-btn { padding: 12px 18px; width:100%; justify-content:center; }
         }
 
-        /* Dark mode: swap the card copy color variable to the chosen deep green (B) */
+        /* Dark mode: tuned colors so card remains readable and premium */
         :global(.dark) .welcome-hero { background: linear-gradient(180deg, rgba(6,20,18,0.95), rgba(4,14,12,0.98)); }
-        :global(.dark) .welcome-card-content { color: var(--card-text-dark) !important; }
+        :global(.dark) .welcome-card-content {
+          color: var(--card-text-dark) !important;
+          background: linear-gradient(180deg, rgba(8,30,24,0.86), rgba(6,26,22,0.9));
+          border: 1px solid rgba(255,255,255,0.04);
+          box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+        }
         :global(.dark) .welcome-title { color: var(--card-text-dark) !important; }
-        :global(.dark) .feature { background: linear-gradient(180deg, rgba(10,36,30,0.58), rgba(6,28,24,0.46)); border: 1px solid rgba(255,255,255,0.04); box-shadow: 0 10px 30px rgba(0,0,0,0.28); color: var(--card-text-dark); }
+        :global(.dark) .feature {
+          background: linear-gradient(180deg, rgba(10,36,30,0.58), rgba(6,28,24,0.46));
+          border: 1px solid rgba(255,255,255,0.04);
+          box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+          color: var(--card-text-dark);
+        }
         :global(.dark) .feature-title { color: var(--card-text-dark); }
-        :global(.dark) .cta-btn { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); box-shadow: 0 28px 76px rgba(0,0,0,0.55); color: #fff; }
+        :global(.dark) .cta-btn { background: linear-gradient(135deg, #19c972, #0ca75b); box-shadow: 0 28px 76px rgba(0,0,0,0.55); color: #042017; }
       `}</style>
     </main>
   );
