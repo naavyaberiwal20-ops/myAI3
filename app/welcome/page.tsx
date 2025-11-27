@@ -60,17 +60,20 @@ export default function WelcomePage() {
     }
   }, []);
 
-  // robust navigation helper: try client push, fallback to full navigation if push didn't land
+  // robust navigation helper: try client push, fallback to full navigation if push doesn't land
   const ensureNavigate = (path: string) => {
-    // client push first
-    router.push(path).catch(() => { /* ignore push error */ });
+    // attempt client navigation (no .catch because router.push may return void)
+    try {
+      router.push(path);
+    } catch {
+      // ignore any router.push runtime errors
+    }
 
-    // check after a short delay, force full navigation if not landed
+    // check after a short delay; force full navigation if not landed
     setTimeout(() => {
       try {
         if (typeof window !== "undefined") {
           const current = window.location.pathname + window.location.search;
-          // if the pathname doesn't start with the target path, force reload
           if (!current.startsWith(path)) {
             window.location.assign(path);
           }
