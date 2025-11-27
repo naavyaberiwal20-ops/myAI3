@@ -3,14 +3,8 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-
-/**
- * Drop-in replacement for the welcome page.
- * Fixes Turbopack parse errors by avoiding unterminated/multiline class strings
- * and by using a plain <style> tag (no styled-jsx).
- */
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -19,7 +13,7 @@ export default function WelcomePage() {
 
   // timings (ms)
   const AUDIO_PLAY_MS = 2800;
-  const LEAVES_DURATION_MS = 1400; // used in JS timing only; CSS uses fixed 1400ms
+  const LEAVES_DURATION_MS = 1400;
   const LEAVES_SHOW_DELAY = 120;
 
   const [leavesActive, setLeavesActive] = useState(false);
@@ -66,13 +60,16 @@ export default function WelcomePage() {
     }
   }, []);
 
+  // robust navigation helper: try client push, fallback to full navigation if push doesn't land
   const ensureNavigate = (path: string) => {
+    // attempt client navigation (no .catch because router.push may return void)
     try {
       router.push(path);
     } catch {
-      // ignore
+      // ignore any router.push runtime errors
     }
 
+    // check after a short delay; force full navigation if not landed
     setTimeout(() => {
       try {
         if (typeof window !== "undefined") {
@@ -124,50 +121,9 @@ export default function WelcomePage() {
     <span key={i} className="leaf" style={{ ['--i' as any]: i }} aria-hidden />
   ));
 
-  // respects reduced-motion
-  const [reducedMotion, setReducedMotion] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReducedMotion(mq.matches);
-    const handler = () => setReducedMotion(mq.matches);
-    try {
-      mq.addEventListener?.("change", handler);
-    } catch {
-      // fallback for older browsers
-      mq.addListener?.(handler);
-    }
-    return () => {
-      try {
-        mq.removeEventListener?.("change", handler);
-      } catch {
-        mq.removeListener?.(handler);
-      }
-    };
-  }, []);
-
-  // Build classNames safely with array/join to avoid parser issues
-  const logoBadgeClasses = [
-    "w-28",
-    "h-28",
-    "sm:w-32",
-    "sm:h-32",
-    "rounded-full",
-    "bg-white/90",
-    "dark:bg-black/30",
-    "backdrop-blur-md",
-    "flex",
-    "items-center",
-    "justify-center",
-    "shadow-[0_30px_80px_rgba(4,20,12,0.08),inset_0_2px_8px_rgba(255,255,255,0.6)]",
-    "transform",
-    "transition-transform",
-    "duration-700",
-  ].join(" ");
-
   return (
     <main className="welcome-hero min-h-screen w-full flex flex-col items-center justify-start p-4 relative overflow-hidden">
-      {/* Top: theme toggle */}
+      {/* Top: theme toggle (keeps your existing component) */}
       <header className="absolute top-4 left-0 right-0 z-60 flex items-center justify-end px-6">
         <div className="flex items-center gap-3">
           <ThemeToggle />
@@ -210,8 +166,8 @@ export default function WelcomePage() {
         <div className="welcome-card-content" role="region" aria-label="Welcome card content">
           <header className="welcome-top w-full">
             <div className="logo-top-left" aria-hidden>
-              <div className={logoBadgeClasses} style={reducedMotion ? undefined : { animation: "float 6s ease-in-out infinite" } as any}>
-                <Image src="/logo.png" width={64} height={64} alt="Greanly" className="rounded-full object-contain" />
+              <div className="logo-badge">
+                <Image src="/logo.png" width={64} height={64} alt="Greanly" className="rounded-full" />
               </div>
             </div>
 
@@ -224,26 +180,26 @@ export default function WelcomePage() {
           </header>
 
           <section className="features-grid" aria-hidden>
-            <button className="feature" onClick={() => onFeatureClick("cuts")} aria-label="Cut costs & waste">
+            <div className="feature" onClick={() => onFeatureClick("cuts")}>
               <div className="feature-icon" aria-hidden>✓</div>
               <div className="feature-title">Cut costs & waste</div>
               <div className="feature-sub">Practical steps you can use now</div>
-            </button>
+            </div>
 
-            <button className="feature" onClick={() => onFeatureClick("suppliers")} aria-label="Find better suppliers">
+            <div className="feature" onClick={() => onFeatureClick("suppliers")}>
               <div className="feature-icon" aria-hidden>🔍</div>
               <div className="feature-title">Find better suppliers</div>
               <div className="feature-sub">Sustainable materials & vendors</div>
-            </button>
+            </div>
 
-            <button className="feature" onClick={() => onFeatureClick("plans")} aria-label="Action plans (30/60/90)">
-              <div className="feature-icon" aria-hidden>⚙️</div>
+            <div className="feature" onClick={() => onFeatureClick("plans")}>
+              <div className="feature-icon" aria-hidden>⚙</div>
               <div className="feature-title">Action plans (30/60/90)</div>
               <div className="feature-sub">Simple prioritized next steps</div>
-            </button>
+            </div>
           </section>
 
-          {/* CTA */}
+          {/* CTA: visually above blob — unified appearance in all modes */}
           <div className="cta-row" aria-hidden={false}>
             <button onClick={handleGetStarted} className="get-started cta-btn" aria-label="Get Started with Greanly">
               <svg className="cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -265,21 +221,24 @@ export default function WelcomePage() {
 
       {/* leaves overlay */}
       {leavesMounted && (
-        <div className={`leaves-overlay ${leavesActive ? "active" : ""}`} aria-hidden>
+        <div className={leaves-overlay ${leavesActive ? "active" : ""}} aria-hidden>
           {leaves}
         </div>
       )}
 
-      {/* styles — plain <style> (not styled-jsx) and no JS interpolation inside CSS */}
-      <style>{`
+      {/* styles */}
+      <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&display=swap');
 
+        /* central tokens for colors, including CTA */
         :root {
           --accent-1: #0D3B2A;
           --accent-2: #14503B;
           --card-text-light: #10201A;
+
+          /* CTA tokens — dark green background + light green text/arrow */
           --btn-bg: linear-gradient(180deg, #062b1f 0%, #0b3928 100%);
-          --btn-text: #DFF6E8;
+          --btn-text: #DFF6E8; /* light green label & arrow */
           --btn-glow: rgba(26, 184, 96, 0.16);
         }
 
@@ -330,7 +289,7 @@ export default function WelcomePage() {
         .welcome-sub { margin-top:10px; color: inherit; max-width:880px; font-size:16px; line-height:1.6; }
 
         .features-grid { margin-top:8px; width:100%; display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; align-items:stretch; }
-        .feature { background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:8px; align-items:center; border:1px solid rgba(13,59,42,0.035); box-shadow:0 10px 36px rgba(13,59,42,0.03); transition: transform 180ms ease, box-shadow 180ms ease; color: inherit; cursor:pointer; text-align:left; }
+        .feature { background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92)); border-radius:14px; padding:18px; display:flex; flex-direction:column; gap:8px; align-items:center; border:1px solid rgba(13,59,42,0.035); box-shadow:0 10px 36px rgba(13,59,42,0.03); transition: transform 180ms ease, box-shadow 180ms ease; color: inherit; }
         .feature:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(13,59,42,0.06); }
         .feature-icon { width:56px; height:56px; border-radius:999px; display:grid; place-items:center; font-size:18px; color:var(--accent-1); background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.55); }
         .feature-title { font-weight:800; color: var(--accent-2); }
@@ -354,12 +313,19 @@ export default function WelcomePage() {
           cursor:pointer;
           transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms;
           position: relative;
-          z-index:60;
+          z-index:60; /* crucial: keeps CTA above blob and other layers */
           opacity:1;
           -webkit-tap-highlight-color: transparent;
         }
-        .cta-btn:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 30px 60px rgba(4,10,6,0.5), 0 12px 56px rgba(3,18,12,0.18), 0 0 64px rgba(26,184,96,0.22); }
+        .cta-btn:hover {
+          transform: translateY(-4px) scale(1.01);
+          box-shadow:
+            0 30px 60px rgba(4,10,6,0.5),
+            0 12px 56px rgba(3,18,12,0.18),
+            0 0 64px rgba(26,184,96,0.22);
+        }
 
+        /* arrow and label inherit the CTA text color */
         .cta-arrow { color: var(--btn-text); flex: 0 0 auto; display: inline-block; }
         .cta-label { color: var(--btn-text); font-weight:800; font-size:16px; }
 
@@ -367,7 +333,7 @@ export default function WelcomePage() {
 
         .leaves-overlay { pointer-events:none; position: fixed; inset: 0; z-index:70; overflow:hidden; display:block; opacity:0; transition: opacity 260ms ease; }
         .leaves-overlay.active { opacity:1; }
-        .leaves-overlay .leaf { --size:22px; position:absolute; top:-12%; left: calc(var(--i) * 7%); width:var(--size); height: calc(var(--size) * 0.7); transform-origin:center; opacity:0; animation: leafFall 1400ms cubic-bezier(.12,.78,.32,1) forwards; animation-delay: calc(var(--i) * 45ms); }
+        .leaves-overlay .leaf { --size:22px; position:absolute; top:-12%; left: calc(var(--i) * 7%); width:var(--size); height: calc(var(--size) * 0.7); transform-origin:center; opacity:0; animation: leafFall ${LEAVES_DURATION_MS}ms cubic-bezier(.12,.78,.32,1) forwards; animation-delay: calc(var(--i) * 45ms); }
         .leaves-overlay .leaf::before { content:""; display:block; width:100%; height:100%; border-radius: 40% 60% 40% 60% / 60% 40% 60% 40%; transform: rotate(-18deg); background: linear-gradient(160deg, rgba(34,139,34,0.95), rgba(106,201,117,0.92)); box-shadow: 0 6px 10px rgba(8,20,12,0.06); }
         .leaves-overlay .leaf::after { content:""; position:absolute; left:44%; top:18%; width:1px; height:60%; background: linear-gradient(180deg, rgba(255,255,255,0.15), rgba(0,0,0,0.06)); transform: rotate(-16deg); border-radius:1px; opacity:0.9; }
         .leaves-overlay .leaf:nth-child(3n) { --size:26px; }
@@ -379,6 +345,7 @@ export default function WelcomePage() {
           100% { opacity:0; transform: translateY(110vh) translateX(18vw) rotate(380deg) scale(0.94); filter: drop-shadow(0 10px 18px rgba(8,20,12,0.06)); }
         }
 
+        /* Responsive */
         @media (max-width: 1100px) {
           .decor-left, .decor-right { display:none; }
           .welcome-card-content { padding: 34px 22px 46px; min-height: auto; }
@@ -391,15 +358,62 @@ export default function WelcomePage() {
           .welcome-title { font-size:28px; }
         }
 
-        :root, :global(.dark) .welcome-hero { /* keep dark background in dark mode */
-          /* dark mode handled via Tailwind classes too */
+        /* keep dark background when theme is dark */
+        :global(.dark) .welcome-hero {
+          background: linear-gradient(180deg, rgba(6,20,18,0.95), rgba(4,14,12,0.98));
         }
 
-        /* floating (disabled if user prefers reduced motion) */
-        @keyframes float { 0% { transform: translateY(0) } 50% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
-        @media (prefers-reduced-motion: reduce) {
-          .leaves-overlay .leaf { animation: none !important; opacity: 0 !important; }
-          .w-28 { animation: none !important; transform: none !important; }
+        /* === NEW: force ALL text INSIDE the white blob to emerald green (#145a32)
+           This affects title, subtitle, feature titles/subs, CTA label/arrow, footer, etc.
+           It intentionally does not change box backgrounds, icon-circle backgrounds, or CTA background. */
+        .welcome-card-content * {
+          color: #145a32 !important;
+          fill: #145a32 !important;
+          stroke: #145a32 !important;
+        }
+
+        /* keep feature cards and icon circles visually identical to light mode (background, shadows) */
+        .feature {
+          background: linear-gradient(180deg, rgba(245,252,248,0.95), rgba(237,250,240,0.92));
+          border-radius:14px;
+          padding:18px;
+          display:flex;
+          flex-direction:column;
+          gap:8px;
+          align-items:center;
+          border:1px solid rgba(13,59,42,0.035);
+          box-shadow:0 10px 36px rgba(13,59,42,0.03);
+          transition: transform 180ms ease, box-shadow 180ms ease;
+          color: inherit;
+        }
+
+        .feature-icon {
+          width:56px;
+          height:56px;
+          border-radius:999px;
+          display:grid;
+          place-items:center;
+          font-size:18px;
+          color:var(--accent-1);
+          background: linear-gradient(180deg, rgba(236,247,232,0.94), rgba(217,237,224,0.9));
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+        }
+
+        /* keep CTA visuals as before (background + glow) */
+        .cta-btn {
+          background: var(--btn-bg);
+          box-shadow:
+            0 18px 40px rgba(4,10,6,0.45),
+            0 8px 34px rgba(3,18,12,0.16),
+            0 0 40px var(--btn-glow);
+          z-index: 999;
+        }
+
+        /* ensure SVG strokes/fills that use currentColor follow the emerald override */
+        .welcome-card-content svg {
+          color: inherit !important;
+          stroke: currentColor !important;
+          fill: currentColor !important;
         }
       `}</style>
     </main>
