@@ -1,140 +1,164 @@
 // app/api/chat/route.ts
-// COPY + REPLACE this entire file
+import {
+  streamText,
+  UIMessage,
+  convertToModelMessages,
+  stepCountIs,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
+} from "ai";
+import { MODEL } from "@/config";
+import { SYSTEM_PROMPT } from "@/prompts";
+import { isContentFlagged } from "@/lib/moderation";
+import { webSearch } from "./tools/web-search";
+import { vectorDatabaseSearch } from "./tools/search-vector-database";
 
-import { streamText, UIMessage, convertToModelMessages, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from 'ai';
-import { MODEL } from '@/config';
-import { SYSTEM_PROMPT } from '@/prompts';
-import { isContentFlagged } from '@/lib/moderation';
-import { webSearch } from './tools/web-search';
-import { vectorDatabaseSearch } from './tools/search-vector-database';
-
-// Maximum allowed handler runtime (informational)
 export const maxDuration = 30;
 
-function createErrorStreamResponse(message: string) {
-  const stream = createUIMessageStream({
-    execute({ writer }) {
-      const id = 'server-error';
-      writer.write({ type: 'start' });
-      writer.write({ type: 'text-start', id });
-      writer.write({ type: 'text-delta', id, delta: message });
-      writer.write({ type: 'text-end', id });
-      writer.write({ type: 'finish' });
-    },
-  });
-  return createUIMessageStreamResponse({ stream });
-}
-
-/**
- * POST /api/chat
- */
 export async function POST(req: Request) {
   try {
-    // Basic defensive checks and logs so Vercel logs show what happened:
-    console.log('[chat.route] Received request at', new Date().toISOString());
-
-    // parse body
+    // parse body safely
     let body: any;
     try {
       body = await req.json();
-    } catch (err) {
-      console.error('[chat.route] Failed to parse JSON body', err);
-      return createErrorStreamResponse("Malformed request. Couldn't parse JSON body.");
+    } catch (e) {
+      console.error("api/chat: failed to parse JSON body", e);
+      body = {};
+    }
+    const messages: UIMessage[] = Array.isArray(body?.messages) ? body.messages : [];
+
+    console.log("[api/chat] incoming messages count:", messages.length);
+
+    // Basic config check
+    if (!MODEL) {
+      console.error("[api/chat] MODEL is not set (check /config).");
+      const stream = createUIMessageStream({
+        execute({ writer }) {
+          writer.write({ type: "start" });
+          const id = "config-missing";
+          writer.write({ type: "text-start", id });
+          writer.write({
+            type: "text-delta",
+            id,
+            delta:
+              "Server configuration problem: MODEL is not set. Please set MODEL in your config (e.g. 'gpt-5.1') and redeploy.",
+          });
+          writer.write({ type: "text-end", id });
+          writer.write({ type: "finish" });
+        },
+      });
+      return createUIMessageStreamResponse({ stream });
     }
 
-    const messages: UIMessage[] | undefined = body?.messages;
-    if (!messages || !Array.isArray(messages)) {
-      console.warn('[chat.route] Missing or invalid "messages" in request body', { messages });
-      return createErrorStreamResponse('No messages were provided. Please send a valid conversation payload.');
-    }
-
-    // pick the latest user message (if any)
-    const latestUserMessage = messages.filter(m => m.role === 'user').pop();
+    // get latest user text for moderation
+    const latestUserMessage = messages.filter((m) => m.role === "user").pop();
 
     if (latestUserMessage) {
-      // extract text for moderation
       const textParts = (latestUserMessage.parts || [])
-        .filter((p: any) => p?.type === 'text')
-        .map((p: any) => ('text' in p ? p.text : ''))
-        .join('');
+        .filter((p: any) => p.type === "text")
+        .map((p: any) => ("text" in p ? p.text : ""))
+        .join("");
+
+      console.log("[api/chat] latest user text (first 200 chars):", textParts?.slice?.(0, 200));
 
       if (textParts) {
-        console.log('[chat.route] Running moderation for user text');
         try {
           const moderationResult = await isContentFlagged(textParts);
           if (moderationResult?.flagged) {
-            console.warn('[chat.route] Message flagged by moderation', moderationResult);
-            // stream the denial message
+            console.warn("[api/chat] message flagged by moderation:", moderationResult);
             const stream = createUIMessageStream({
               execute({ writer }) {
-                const textId = 'moderation-denial-text';
-                writer.write({ type: 'start' });
-                writer.write({ type: 'text-start', id: textId });
+                writer.write({ type: "start" });
+                const id = "moderation-denial";
+                writer.write({ type: "text-start", id });
                 writer.write({
-                  type: 'text-delta',
-                  id: textId,
-                  delta: moderationResult.denialMessage || "Your message violates our guidelines. I can't answer that.",
+                  type: "text-delta",
+                  id,
+                  delta:
+                    moderationResult.denialMessage ||
+                    "Your message violates our guidelines. I can't answer that.",
                 });
-                writer.write({ type: 'text-end', id: textId });
-                writer.write({ type: 'finish' });
+                writer.write({ type: "text-end", id });
+                writer.write({ type: "finish" });
               },
             });
-
             return createUIMessageStreamResponse({ stream });
           }
         } catch (modErr) {
-          console.error('[chat.route] Moderation check failed', modErr);
-          // don't block the request completely if moderation service fails — log and continue
+          // log moderation errors, but don't block the chat - fallback to continuing
+          console.error("[api/chat] moderation check error:", modErr);
         }
       }
     }
 
-    // Ensure we have a model name. If MODEL is not set, pick a sensible default.
-    const modelName = MODEL || 'gpt-5.1';
-    if (!MODEL) {
-      console.warn('[chat.route] MODEL not defined in config; falling back to', modelName);
-    }
-
-    // Build and start the streaming response to the client.
-    console.log('[chat.route] Starting streamText with model', modelName);
-    let result;
+    // call the model & stream text – wrap in try/catch to return fallback on error
     try {
-      result = streamText({
-        model: modelName,
+      console.log("[api/chat] calling streamText with model:", MODEL);
+
+      const result = streamText({
+        model: MODEL,
         system: SYSTEM_PROMPT,
         messages: convertToModelMessages(messages),
         tools: {
           webSearch,
           vectorDatabaseSearch,
         },
-        // stop after a small number of reasoning steps to avoid silent hang ups
+        // short-circuit: stop after 10 reasoning steps (you had this previously)
         stopWhen: stepCountIs(10),
         providerOptions: {
           openai: {
-            // these options depend on the 'ai' lib you use; safe defaults
-            reasoningSummary: 'auto',
-            reasoningEffort: 'low',
+            reasoningSummary: "auto",
+            reasoningEffort: "low",
             parallelToolCalls: false,
           },
         },
       });
-    } catch (streamErr) {
-      console.error('[chat.route] streamText threw an error', streamErr);
-      return createErrorStreamResponse('Internal error: failed to start model stream. Check server logs.');
-    }
 
-    // Convert streaming result to UIMessageStreamResponse and return it.
-    try {
+      // success: return the streaming response to client
       return result.toUIMessageStreamResponse({
         sendReasoning: true,
       });
-    } catch (convErr) {
-      console.error('[chat.route] result.toUIMessageStreamResponse failed', convErr);
-      return createErrorStreamResponse('Internal error: streaming response failed to initialize.');
+    } catch (modelErr) {
+      // Model call failed — log and return a friendly fallback to the user
+      console.error("[api/chat] streamText/model error:", modelErr);
+
+      const stream = createUIMessageStream({
+        execute({ writer }) {
+          writer.write({ type: "start" });
+          const id = "model-error";
+          writer.write({ type: "text-start", id });
+          writer.write({
+            type: "text-delta",
+            id,
+            delta:
+              "Sorry — I couldn't generate a response right now. The server logged an error. Please check the server logs.",
+          });
+          writer.write({ type: "text-end", id });
+          writer.write({ type: "finish" });
+        },
+      });
+
+      return createUIMessageStreamResponse({ stream });
     }
   } catch (err) {
-    // Catch-all: stream a friendly error back to the client and log the stack
-    console.error('[chat.route] Unexpected error in POST handler', err);
-    return createErrorStreamResponse('An unexpected server error occurred. Check logs for details.');
+    // top-level failure — ensure client still gets a reply
+    console.error("[api/chat] top-level handler error:", err);
+
+    const stream = createUIMessageStream({
+      execute({ writer }) {
+        writer.write({ type: "start" });
+        const id = "fatal-error";
+        writer.write({ type: "text-start", id });
+        writer.write({
+          type: "text-delta",
+          id,
+          delta: "Server error handling request. See server logs for details.",
+        });
+        writer.write({ type: "text-end", id });
+        writer.write({ type: "finish" });
+      },
+    });
+
+    return createUIMessageStreamResponse({ stream });
   }
 }
