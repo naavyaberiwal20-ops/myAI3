@@ -1,168 +1,140 @@
 // app/api/chat/route.ts
-import { NextResponse } from "next/server";
-import { SYSTEM_PROMPT } from "@/prompts";
-import { isContentFlagged } from "@/lib/moderation";
+// COPY + REPLACE this entire file
+
+import { streamText, UIMessage, convertToModelMessages, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from 'ai';
+import { MODEL } from '@/config';
+import { SYSTEM_PROMPT } from '@/prompts';
+import { isContentFlagged } from '@/lib/moderation';
+import { webSearch } from './tools/web-search';
+import { vectorDatabaseSearch } from './tools/search-vector-database';
+
+// Maximum allowed handler runtime (informational)
+export const maxDuration = 30;
+
+function createErrorStreamResponse(message: string) {
+  const stream = createUIMessageStream({
+    execute({ writer }) {
+      const id = 'server-error';
+      writer.write({ type: 'start' });
+      writer.write({ type: 'text-start', id });
+      writer.write({ type: 'text-delta', id, delta: message });
+      writer.write({ type: 'text-end', id });
+      writer.write({ type: 'finish' });
+    },
+  });
+  return createUIMessageStreamResponse({ stream });
+}
 
 /**
- * Very defensive chat route:
- * - Accepts { messages: UIMessage[] } (your UI shape) OR { message: "string" }
- * - Runs moderation check (but continues if moderation throws)
- * - Calls OpenAI chat/completions with timeout
- * - Returns JSON { ok, reply, error?, debug? }
- *
- * COPY + REPLACE this file and deploy.
+ * POST /api/chat
  */
-
-type Part = { type?: string; text?: string };
-type UIMessage = { role?: string; parts?: Part[] };
-
-function extractTextFromParts(parts?: Part[] | any): string {
-  if (!parts || !Array.isArray(parts)) return "";
-  return parts
-    .map((p) => (p && typeof p.text === "string" ? p.text : ""))
-    .join(" ")
-    .trim();
-}
-
-function getLastUserMessage(messages?: UIMessage[] | any): string {
-  if (!Array.isArray(messages)) return "";
-  // walk from end for last user
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i];
-    if (!m) continue;
-    const role = (m.role || "").toString().toLowerCase();
-    if (role === "user") {
-      // try parts first
-      const parts = m.parts ?? m.content ?? m.text ?? [];
-      const extracted = extractTextFromParts(parts);
-      if (extracted) return extracted;
-      // fallback to "content" if it's a string
-      if (typeof m.content === "string" && m.content.trim()) return m.content.trim();
-      if (typeof m.text === "string" && m.text.trim()) return m.text.trim();
-    }
-  }
-  return "";
-}
-
 export async function POST(req: Request) {
-  // Always return JSON (helpful for debugging)
   try {
-    const body = await req.json().catch(() => ({}));
-    const incomingMessages = Array.isArray(body?.messages) ? body.messages : undefined;
-    const fallbackMessage = typeof body?.message === "string" ? body.message : undefined;
+    // Basic defensive checks and logs so Vercel logs show what happened:
+    console.log('[chat.route] Received request at', new Date().toISOString());
 
-    // find latest user message
-    let latestUserText = getLastUserMessage(incomingMessages);
-    if (!latestUserText && fallbackMessage) latestUserText = fallbackMessage.trim();
-
-    if (!latestUserText) {
-      return NextResponse.json({ ok: false, error: "No user message provided" }, { status: 400 });
+    // parse body
+    let body: any;
+    try {
+      body = await req.json();
+    } catch (err) {
+      console.error('[chat.route] Failed to parse JSON body', err);
+      return createErrorStreamResponse("Malformed request. Couldn't parse JSON body.");
     }
 
-    // Moderation check - don't fail the whole request if moderation errors
-    try {
-      const mod = await isContentFlagged(latestUserText);
-      if (mod?.flagged) {
-        const denial = mod.denialMessage || "Your message violates our guidelines. I can't answer that.";
-        console.warn("Moderation flagged message. Returning denial.");
-        return NextResponse.json({ ok: true, reply: denial, moderated: true });
+    const messages: UIMessage[] | undefined = body?.messages;
+    if (!messages || !Array.isArray(messages)) {
+      console.warn('[chat.route] Missing or invalid "messages" in request body', { messages });
+      return createErrorStreamResponse('No messages were provided. Please send a valid conversation payload.');
+    }
+
+    // pick the latest user message (if any)
+    const latestUserMessage = messages.filter(m => m.role === 'user').pop();
+
+    if (latestUserMessage) {
+      // extract text for moderation
+      const textParts = (latestUserMessage.parts || [])
+        .filter((p: any) => p?.type === 'text')
+        .map((p: any) => ('text' in p ? p.text : ''))
+        .join('');
+
+      if (textParts) {
+        console.log('[chat.route] Running moderation for user text');
+        try {
+          const moderationResult = await isContentFlagged(textParts);
+          if (moderationResult?.flagged) {
+            console.warn('[chat.route] Message flagged by moderation', moderationResult);
+            // stream the denial message
+            const stream = createUIMessageStream({
+              execute({ writer }) {
+                const textId = 'moderation-denial-text';
+                writer.write({ type: 'start' });
+                writer.write({ type: 'text-start', id: textId });
+                writer.write({
+                  type: 'text-delta',
+                  id: textId,
+                  delta: moderationResult.denialMessage || "Your message violates our guidelines. I can't answer that.",
+                });
+                writer.write({ type: 'text-end', id: textId });
+                writer.write({ type: 'finish' });
+              },
+            });
+
+            return createUIMessageStreamResponse({ stream });
+          }
+        } catch (modErr) {
+          console.error('[chat.route] Moderation check failed', modErr);
+          // don't block the request completely if moderation service fails — log and continue
+        }
       }
-    } catch (mErr) {
-      console.error("Moderation function threw an error; continuing request. Error:", mErr);
     }
 
-    const OPENAI_KEY = process.env.OPENAI_API_KEY;
-    if (!OPENAI_KEY) {
-      console.error("Missing OPENAI_API_KEY environment variable.");
-      return NextResponse.json({ ok: false, error: "OPENAI_API_KEY missing on server" }, { status: 500 });
+    // Ensure we have a model name. If MODEL is not set, pick a sensible default.
+    const modelName = MODEL || 'gpt-5.1';
+    if (!MODEL) {
+      console.warn('[chat.route] MODEL not defined in config; falling back to', modelName);
     }
 
-    // MODEL — change if your account uses different name (gpt-5.1, gpt-5.1-mini, etc.)
-    const MODEL = "gpt-5.1";
-
-    // Build messages for OpenAI
-    const messages = [
-      { role: "system", content: typeof SYSTEM_PROMPT === "string" && SYSTEM_PROMPT.length > 0 ? SYSTEM_PROMPT : "You are a helpful assistant." },
-      { role: "user", content: latestUserText },
-    ];
-
-    // Timeout and fetch options
-    const controller = new AbortController();
-    const TIMEOUT_MS = 20000; // 20s
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    let openaiStatus = -1;
-    let openaiBodyText = "";
-
+    // Build and start the streaming response to the client.
+    console.log('[chat.route] Starting streamText with model', modelName);
+    let result;
     try {
-      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_KEY}`,
+      result = streamText({
+        model: modelName,
+        system: SYSTEM_PROMPT,
+        messages: convertToModelMessages(messages),
+        tools: {
+          webSearch,
+          vectorDatabaseSearch,
         },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: MODEL,
-          messages,
-          temperature: 0.2,
-          max_tokens: 900,
-        }),
+        // stop after a small number of reasoning steps to avoid silent hang ups
+        stopWhen: stepCountIs(10),
+        providerOptions: {
+          openai: {
+            // these options depend on the 'ai' lib you use; safe defaults
+            reasoningSummary: 'auto',
+            reasoningEffort: 'low',
+            parallelToolCalls: false,
+          },
+        },
       });
-
-      openaiStatus = resp.status;
-      openaiBodyText = await resp.text();
-
-      if (!resp.ok) {
-        console.error("OpenAI API returned non-OK:", resp.status, openaiBodyText);
-        // return helpful debug info but still user-friendly message
-        return NextResponse.json({
-          ok: false,
-          error: "OpenAI API error",
-          openaiStatus,
-          openaiBody: openaiBodyText,
-        }, { status: 502 });
-      }
-
-      // parse
-      let data: any;
-      try {
-        data = JSON.parse(openaiBodyText);
-      } catch (e) {
-        data = { raw: openaiBodyText };
-      }
-
-      const reply =
-        data?.choices?.[0]?.message?.content ??
-        data?.choices?.[0]?.text ??
-        (typeof openaiBodyText === "string" ? openaiBodyText : JSON.stringify(data));
-
-      clearTimeout(timeout);
-
-      // Success — return reply
-      return NextResponse.json({
-        ok: true,
-        reply: (reply || "").toString().trim(),
-        debug: { openaiStatus, model: MODEL },
-      });
-    } catch (fetchErr: any) {
-      clearTimeout(timeout);
-      // handle timeout/abort
-      const isAbort = fetchErr?.name === "AbortError" || fetchErr?.message?.toLowerCase()?.includes("aborted");
-      console.error("OpenAI fetch failed:", fetchErr?.message ?? fetchErr, "abort?", isAbort);
-      // Fallback: return friendly fallback reply so UI doesn't hang
-      const fallback = "Sorry — I'm temporarily unavailable. Please try again in a few seconds.";
-      return NextResponse.json({
-        ok: false,
-        error: "OpenAI request failed",
-        message: fallback,
-        fetchError: String(fetchErr?.message ?? fetchErr),
-        openaiStatus,
-        openaiBody: openaiBodyText,
-      }, { status: 502 });
+    } catch (streamErr) {
+      console.error('[chat.route] streamText threw an error', streamErr);
+      return createErrorStreamResponse('Internal error: failed to start model stream. Check server logs.');
     }
-  } catch (err: any) {
-    console.error("Unhandled error in /api/chat:", err);
-    return NextResponse.json({ ok: false, error: "Internal server error", detail: String(err?.message ?? err) }, { status: 500 });
+
+    // Convert streaming result to UIMessageStreamResponse and return it.
+    try {
+      return result.toUIMessageStreamResponse({
+        sendReasoning: true,
+      });
+    } catch (convErr) {
+      console.error('[chat.route] result.toUIMessageStreamResponse failed', convErr);
+      return createErrorStreamResponse('Internal error: streaming response failed to initialize.');
+    }
+  } catch (err) {
+    // Catch-all: stream a friendly error back to the client and log the stack
+    console.error('[chat.route] Unexpected error in POST handler', err);
+    return createErrorStreamResponse('An unexpected server error occurred. Check logs for details.');
   }
 }
