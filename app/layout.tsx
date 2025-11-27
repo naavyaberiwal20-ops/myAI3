@@ -1,7 +1,9 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ui/theme-provider";
+import RemoveNewButton from "@/components/ui/remove-new-button";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -25,9 +27,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      {/* next-themes uses the provider implementation in components/ui/theme-provider */}
       <body className={`${inter.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
+          {/* Remove stray “New” buttons rendered globally by any library/component */}
+          <RemoveNewButton />
           {children}
         </ThemeProvider>
       </body>
