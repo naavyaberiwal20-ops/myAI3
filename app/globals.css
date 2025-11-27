@@ -115,6 +115,13 @@
   --sidebar-accent-foreground: var(--charcoal);
   --sidebar-border: rgba(13,59,42,0.06);
   --sidebar-ring: rgba(13,59,42,0.08);
+
+  /* paper texture settings (file is at public/recycled-paper.png) */
+  --paper-texture: "/recycled-paper.png";
+  --paper-texture-2x: "/recycled-paper@2x.png";
+  --paper-opacity: 0.95;     /* stronger texture (increase for more visible) */
+  --paper-blend: multiply;   /* multiply = authentic recycled paper feel */
+  --paper-tile-size: 1200px 1200px; /* scale of the grain pattern */
 }
 
 /* Dark theme overrides */
@@ -160,21 +167,6 @@
 }
 
 /* ------------------------
-   Paper grain SVG (data URI)
-   - subtle noise overlay to create a premium paper texture
-   ------------------------ */
-/* small, subtle noise made with SVG feTurbulence and a slight opacity */
-:root {
-  --paper-noise: url("data:image/svg+xml;utf8,\
-  <svg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'>\
-    <filter id='n'><feTurbulence baseFrequency='0.8' numOctaves='2' seed='14' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer>\
-      <feFuncA type='table' tableValues='0 0.08'/>\
-    </feComponentTransfer></filter>\
-    <rect width='100%' height='100%' filter='url(%23n)' opacity='0.12' fill='white'/>\
-  </svg>");
-}
-
-/* ------------------------
    Base layer (Tailwind + component mappings)
    ------------------------ */
 @layer base {
@@ -188,22 +180,50 @@
     height: 100%;
   }
 
-  /* Layered background: gentle vertical gradient + paper grain texture
-     - gradient gives warmth / depth
-     - noise provides subtle tactile feel
-  */
+  /* Layered background: gentle vertical gradient + paper texture (PNG from public/) */
   body {
     font-family: var(--font-sans, Inter), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
     color: var(--foreground);
     margin: 0;
     padding: 0;
+
+    /* gradient base (keeps your soft green brand) */
     background-image:
-      linear-gradient(180deg, var(--background-gradient-start), var(--background-gradient-end)),
-      var(--paper-noise);
-    background-repeat: repeat, repeat;
-    background-size: auto, 800px 600px;
+      linear-gradient(180deg, var(--background-gradient-start), var(--background-gradient-end));
+    background-repeat: no-repeat;
+    background-size: cover;
     background-attachment: fixed;
     line-height: 1.52;
+    position: relative;
+    z-index: 0;
+  }
+
+  /* Paper texture applied as fixed pseudo-element for consistent tiling and strong visibility */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+
+    background-image: url(var(--paper-texture));
+    background-repeat: repeat;
+    background-position: top left;
+    background-size: var(--paper-tile-size);
+
+    mix-blend-mode: var(--paper-blend);
+    opacity: var(--paper-opacity);
+
+    /* slight adjustments to make the texture feel natural and rich */
+    filter: contrast(0.98) saturate(0.9) brightness(1.02);
+  }
+
+  /* Retina override: uses @2x if you add recycled-paper@2x.png */
+  @media only screen and (min-resolution: 2dppx) {
+    body::before {
+      background-image: image-set(url(var(--paper-texture-2x)) 2x, url(var(--paper-texture)) 1x);
+      background-size: calc(var(--paper-tile-size) / 2);
+    }
   }
 
   /* center & constrain app content to feel premium like a product page */
@@ -215,6 +235,8 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+    position: relative;
+    z-index: 1; /* keep above the texture */
   }
 
   /* card surfaces — tactile, paper-like */
@@ -492,9 +514,9 @@
 
   /* utility to apply the paper noise directly to elements if needed */
   .paper-noise {
-    background-image: var(--paper-noise);
+    background-image: url("/recycled-paper.png");
     background-repeat: repeat;
-    background-size: 800px 600px;
+    background-size: var(--paper-tile-size);
     opacity: 0.9;
   }
 }
@@ -509,4 +531,12 @@
   .chat-header { padding: 12px; }
   .messages { padding: 12px; }
   .chat-textarea { min-height: 42px; font-size: 14px; }
+}
+
+/* Dark-mode texture adjustments */
+.dark body::before {
+  mix-blend-mode: normal;
+  background-color: rgba(3,10,8,0.07);
+  background-blend-mode: multiply;
+  opacity: calc(var(--paper-opacity) * 0.9);
 }
