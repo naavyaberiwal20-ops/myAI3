@@ -1,5 +1,3 @@
-I have a welcome file with this code
-
 // app/welcome/page.tsx
 "use client";
 
@@ -339,5 +337,3 @@ export default function WelcomePage() {
     </main>
   );
 }
-
-Now tell me where to change what
