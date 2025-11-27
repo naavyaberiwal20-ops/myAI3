@@ -25,9 +25,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      {/* The class is applied by next-themes */}
+      {/* next-themes uses the provider implementation in components/ui/theme-provider */}
       <body className={`${inter.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider>
           {children}
         </ThemeProvider>
       </body>
