@@ -180,19 +180,19 @@ export default function WelcomePage() {
           </header>
 
           <section className="features-grid" aria-hidden>
-            <div className="feature">
+            <div className="feature" onClick={() => onFeatureClick("cuts")}>
               <div className="feature-icon" aria-hidden>✓</div>
               <div className="feature-title">Cut costs & waste</div>
               <div className="feature-sub">Practical steps you can use now</div>
             </div>
 
-            <div className="feature">
+            <div className="feature" onClick={() => onFeatureClick("suppliers")}>
               <div className="feature-icon" aria-hidden>🔍</div>
               <div className="feature-title">Find better suppliers</div>
               <div className="feature-sub">Sustainable materials & vendors</div>
             </div>
 
-            <div className="feature">
+            <div className="feature" onClick={() => onFeatureClick("plans")}>
               <div className="feature-icon" aria-hidden>⚙️</div>
               <div className="feature-title">Action plans (30/60/90)</div>
               <div className="feature-sub">Simple prioritized next steps</div>
@@ -358,26 +358,49 @@ export default function WelcomePage() {
           .welcome-title { font-size:28px; }
         }
 
-        /* Dark mode: readable copy + stronger CTA glow */
+        /* Dark mode: adjust backgrounds but override the light-green text + circle icons
+           to use the chosen dark green #145a32 while leaving light mode intact. */
         :global(.dark) .welcome-hero { background: linear-gradient(180deg, rgba(6,20,18,0.95), rgba(4,14,12,0.98)); }
 
-        /* Make the copy inside the white blob readable on dark backgrounds:
-           lighter, desaturated green/near-white keeps the same "green" tone
-           but stays visible. */
+        /* Keep the blob/card background darker for dark mode (unchanged intent) */
         :global(.dark) .welcome-card-content { color: rgba(224,244,232,0.98) !important; }
-        :global(.dark) .welcome-title { color: rgba(224,244,232,0.98) !important; }
-        :global(.dark) .welcome-sub { color: rgba(204,234,216,0.92) !important; }
 
+        /* --- Important: change the pale mint text to the chosen dark green --- */
+        :global(.dark) .welcome-title {
+          color: #145a32 !important;
+        }
+
+        :global(.dark) .welcome-sub {
+          color: #145a32cc !important;
+        }
+
+        /* Feature cards remain dark, but the icon circles and the feature text
+           should show the dark green requested. */
         :global(.dark) .feature {
           background: linear-gradient(180deg, rgba(12,36,30,0.62), rgba(8,28,24,0.56));
           border: 1px solid rgba(255,255,255,0.04);
           box-shadow: 0 18px 44px rgba(0,0,0,0.36);
+          /* keep overall card text color readable, but we will override specific pieces below */
           color: rgba(220,240,229,0.98);
         }
-        :global(.dark) .feature-title { color: rgba(208,240,222,0.98); }
-        :global(.dark) .feature-sub { color: rgba(180,210,196,0.86); }
 
-        /* stronger CTA glow on dark backgrounds so the illuminated look stands out */
+        /* Make the icon circles use the dark green and a subtle tinted background so the glyph is visible */
+        :global(.dark) .feature-icon {
+          color: #145a32 !important;
+          background: rgba(20,90,50,0.06) !important;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+        }
+
+        /* Force the feature titles and subs to dark green as requested */
+        :global(.dark) .feature-title {
+          color: #145a32 !important;
+        }
+
+        :global(.dark) .feature-sub {
+          color: #145a32cc !important;
+        }
+
+        /* Keep CTA appearance strong on dark background (no color change to CTA text required) */
         :global(.dark) .cta-btn {
           background: var(--btn-bg);
           color: var(--btn-text);
@@ -388,6 +411,17 @@ export default function WelcomePage() {
         }
         :global(.dark) .cta-arrow,
         :global(.dark) .cta-label { color: var(--btn-text); }
+
+        /* small tweak: logo badge tint in dark mode */
+        :global(.dark) .logo-top-left {
+          background: linear-gradient(180deg, rgba(20,90,50,0.06), rgba(20,90,50,0.02));
+          box-shadow: 0 18px 44px rgba(0,0,0,0.32);
+        }
+
+        /* Ensure any SVG or inline glyphs that rely on color inherit the current color in dark mode */
+        :global(.dark) svg, :global(.dark) .feature-icon, :global(.dark) .welcome-title, :global(.dark) .welcome-sub {
+          color: inherit;
+        }
       `}</style>
     </main>
   );
